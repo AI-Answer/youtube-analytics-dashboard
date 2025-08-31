@@ -1,0 +1,65 @@
+services:
+  # FastAPI Backend Service
+  - type: web
+    name: youtube-analytics-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: |
+      cd backend &&
+      pip install -r requirements.txt
+    startCommand: |
+      cd backend &&
+      chmod +x start.sh &&
+      ./start.sh
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        value: sqlite:///youtube_analytics.db
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: ENVIRONMENT
+        value: production
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: YOUTUBE_API_KEY
+        sync: false
+      - key: YOUTUBE_CHANNEL_ID
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+    disk:
+      name: youtube-analytics-data
+      mountPath: /opt/render/project/src/backend
+      sizeGB: 1
+    
+  # Next.js Frontend Service
+  - type: web
+    name: youtube-analytics-frontend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: |
+      cd frontend &&
+      npm ci &&
+      npm run build
+    startCommand: |
+      cd frontend &&
+      npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.0
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: youtube-analytics-backend
+          property: host
+      - key: NODE_ENV
+        value: production
+
+databases:
+  # We'll use disk storage for SQLite instead of a separate database service
+  # The SQLite file will be stored on the persistent disk attached to the backend
