@@ -5,13 +5,10 @@ services:
     env: python
     region: oregon
     plan: free
-    buildCommand: |
-      cd backend &&
-      pip install -r requirements.txt
-    startCommand: |
-      cd backend &&
-      chmod +x start.sh &&
-      ./start.sh
+    repo: https://github.com/AI-Answer/youtube-analytics-dashboard.git
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: chmod +x start.sh && ./start.sh
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -42,13 +39,10 @@ services:
     env: node
     region: oregon
     plan: free
-    buildCommand: |
-      cd frontend &&
-      npm ci &&
-      npm run build
-    startCommand: |
-      cd frontend &&
-      npm start
+    repo: https://github.com/AI-Answer/youtube-analytics-dashboard.git
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
     envVars:
       - key: NODE_VERSION
         value: 18.17.0
