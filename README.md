@@ -1,6 +1,40 @@
 # YouTube Analytics Tracking System
 
-A comprehensive YouTube analytics tracking system built with FastAPI backend and modern web frontend.
+A comprehensive YouTube analytics tracking system built with FastAPI backend and modern web frontend, featuring advanced UTM link generation and dual tracking capabilities.
+
+## 🚀 Quick Docker Deployment
+
+### Prerequisites
+- Docker and Docker Compose installed
+- Git installed
+
+### One-Command Deployment
+```bash
+git clone https://github.com/AI-Answer/youtube-analytics-dashboard.git
+cd youtube-analytics-dashboard
+./deploy.sh
+```
+
+### Manual Deployment
+```bash
+# 1. Clone repository
+git clone https://github.com/AI-Answer/youtube-analytics-dashboard.git
+cd youtube-analytics-dashboard
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your settings
+
+# 3. Add GA4 service account (optional)
+# Place your GA4 JSON file at: backend/ga4-service-account.json
+
+# 4. Deploy
+docker compose up -d
+
+# 5. Access application
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:8000
+```
 
 ## Project Overview
 
