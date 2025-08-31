@@ -1,0 +1,115 @@
+"""
+Core configuration settings for the YouTube Analytics API.
+"""
+from typing import List, Optional
+from pydantic_settings import BaseSettings
+from pydantic import validator
+import os
+from pathlib import Path
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables."""
+    
+    # API Configuration
+    API_V1_STR: str = "/api/v1"
+    PROJECT_NAME: str = "YouTube Analytics API"
+    VERSION: str = "1.0.0"
+    DESCRIPTION: str = "YouTube Analytics Tracking System API"
+    
+    # Database
+    DATABASE_URL: str = "sqlite:///./youtube_analytics.db"
+    
+    # Google OAuth Configuration
+    GOOGLE_CLIENT_ID: str
+    GOOGLE_CLIENT_SECRET: str
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/auth/google/callback"
+    
+    # YouTube API Configuration
+    YOUTUBE_API_KEY: str
+    YOUTUBE_CHANNEL_ID: str
+    YOUTUBE_CHANNEL_HANDLE: str = "@SaminYasar_"
+    
+    # ScrapeCreators API Configuration
+    SCRAPECREATORS_API_KEY: str = "wHAmZcysPNY6yDhX0impv2Lv5dg1"
+    SCRAPECREATORS_BASE_URL: str = "https://api.scrapecreators.com"
+    
+    # JWT Configuration
+    SECRET_KEY: str
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    
+    # Redis Configuration
+    REDIS_URL: str = "redis://localhost:6379/0"
+    
+    # CORS Configuration
+    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8080"]
+    
+    @validator("BACKEND_CORS_ORIGINS", pre=True)
+    def assemble_cors_origins(cls, v):
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",")]
+        elif isinstance(v, (list, str)):
+            return v
+        raise ValueError(v)
+    
+    # Rate Limiting
+    RATE_LIMIT_PER_MINUTE: int = 60
+    
+    # Logging
+    LOG_LEVEL: str = "INFO"
+    
+    # Environment
+    ENVIRONMENT: str = "development"
+    DEBUG: bool = True
+    
+    # YouTube OAuth Scopes
+    YOUTUBE_SCOPES: List[str] = [
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/yt-analytics.readonly",
+        "https://www.googleapis.com/auth/youtube.channel-memberships.creator"
+    ]
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
+
+
+# Create settings instance
+settings = Settings()
+
+
+# Database configuration
+def get_database_url() -> str:
+    """Get the database URL for SQLAlchemy."""
+    return settings.DATABASE_URL
+
+
+# Google OAuth configuration
+def get_google_oauth_config() -> dict:
+    """Get Google OAuth configuration."""
+    return {
+        "client_id": settings.GOOGLE_CLIENT_ID,
+        "client_secret": settings.GOOGLE_CLIENT_SECRET,
+        "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+        "scopes": settings.YOUTUBE_SCOPES
+    }
+
+
+# YouTube API configuration
+def get_youtube_config() -> dict:
+    """Get YouTube API configuration."""
+    return {
+        "api_key": settings.YOUTUBE_API_KEY,
+        "channel_id": settings.YOUTUBE_CHANNEL_ID,
+        "channel_handle": settings.YOUTUBE_CHANNEL_HANDLE
+    }
+
+
+# ScrapeCreators API configuration
+def get_scrapecreators_config() -> dict:
+    """Get ScrapeCreators API configuration."""
+    return {
+        "api_key": settings.SCRAPECREATORS_API_KEY,
+        "base_url": settings.SCRAPECREATORS_BASE_URL
+    }
