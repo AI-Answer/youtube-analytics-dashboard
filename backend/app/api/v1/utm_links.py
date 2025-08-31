@@ -375,8 +375,15 @@ async def redirect_pretty_utm_link(
             from loguru import logger
             logger.warning(f"GA4 event tracking failed for link {utm_link.id}: {ga4_error}")
 
-        # Redirect to the tracking URL (destination with UTM parameters)
-        return RedirectResponse(url=utm_link.tracking_url, status_code=302)
+        # Redirect based on tracking type
+        if utm_link.tracking_type == 'direct_ga4':
+            # For Direct GA4, redirect to destination with UTM parameters
+            redirect_url = utm_link.direct_url or utm_link.tracking_url
+        else:
+            # For Server Redirect, redirect to destination URL
+            redirect_url = utm_link.destination_url
+
+        return RedirectResponse(url=redirect_url, status_code=302)
 
     except HTTPException:
         raise

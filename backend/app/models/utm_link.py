@@ -69,18 +69,19 @@ class UTMLink(Base):
     def shareable_url(self):
         """Get the URL that should be shared publicly."""
         if self.is_direct_ga4:
-            # Return the direct destination URL with UTM parameters (any domain)
-            return self.direct_url or self.tracking_url
-        else:
-            # Get base URL from environment or use localhost for development
-            import os
-            base_url = os.getenv('BASE_URL', 'http://localhost:8000')
-
-            # Return pretty URL if available, otherwise redirect URL
+            # For Direct GA4, provide choice: short tracking URL or direct destination URL
             if self.pretty_slug:
-                return f"{base_url}/api/v1/go/{self.pretty_slug}"
+                # Short tracking URL that redirects to destination with UTM parameters
+                return f"/api/v1/go/{self.pretty_slug}"
             else:
-                return f"{base_url}/api/v1/r/{self.id}"
+                # Fallback to direct destination URL with UTM parameters
+                return self.direct_url or self.tracking_url
+        else:
+            # Server redirect links always use short URLs
+            if self.pretty_slug:
+                return f"/api/v1/go/{self.pretty_slug}"
+            else:
+                return f"/api/v1/r/{self.id}"
 
     def __repr__(self):
         return f"<UTMLink(id={self.id}, video_id={self.video_id}, tracking_type={self.tracking_type}, destination={self.destination_url[:50]}...)>"

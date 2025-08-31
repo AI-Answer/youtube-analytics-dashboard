@@ -42,13 +42,13 @@ class UTMService:
             else:
                 slug = domain_name
 
-            # Add video ID suffix to ensure uniqueness
-            video_suffix = video_id[:8] if len(video_id) > 8 else video_id
+            # Add video ID suffix to ensure uniqueness (shorter)
+            video_suffix = video_id[:6] if len(video_id) > 6 else video_id
             slug = f"{slug}-{video_suffix}"
 
-            # Ensure slug is not too long
-            if len(slug) > 80:
-                slug = slug[:80]
+            # Ensure slug is not too long (shorter limit for better URLs)
+            if len(slug) > 50:
+                slug = slug[:50]
 
             return slug.lower()
         except Exception:
@@ -102,11 +102,9 @@ class UTMService:
         # Generate direct URL for GA4-only tracking
         direct_url = tracking_url if tracking_type == "direct_ga4" else None
 
-        # Generate pretty slug (only for server redirect)
-        pretty_slug = None
-        if tracking_type == "server_redirect":
-            base_slug = self._generate_pretty_slug(destination_url, video_id)
-            pretty_slug = self._ensure_unique_slug(base_slug)
+        # Generate pretty slug for both tracking types (for short URLs)
+        base_slug = self._generate_pretty_slug(destination_url, video_id)
+        pretty_slug = self._ensure_unique_slug(base_slug)
 
         # Create UTM link record
         utm_link = UTMLink(

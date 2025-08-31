@@ -154,7 +154,11 @@ const UTMLinksManagement: React.FC<UTMLinksManagementProps> = ({ refreshTrigger 
     if (!generatedLink) return;
 
     try {
-      await navigator.clipboard.writeText(generatedLink.tracking_url);
+      // Use shareable_url for consistent short URL copying
+      const urlToCopy = generatedLink.tracking_type === 'direct_ga4'
+        ? generatedLink.shareable_url
+        : `${window.location.origin}${generatedLink.shareable_url}`;
+      await navigator.clipboard.writeText(urlToCopy);
       setGeneratorCopied(true);
       setTimeout(() => setGeneratorCopied(false), 2000);
     } catch (err) {
@@ -175,10 +179,10 @@ const UTMLinksManagement: React.FC<UTMLinksManagementProps> = ({ refreshTrigger 
 
   const handleCopyLink = async (link: UTMLink) => {
     try {
-      // Use the shareable URL which is appropriate for the tracking type
-      const urlToCopy = link.tracking_type === 'direct_ga4'
-        ? link.shareable_url
-        : `${window.location.origin}${link.shareable_url}`;
+      // Always create full URL for copying
+      const urlToCopy = link.shareable_url.startsWith('/')
+        ? `${window.location.origin}${link.shareable_url}`
+        : link.shareable_url;
       await navigator.clipboard.writeText(urlToCopy);
       setCopied(link.id);
       setTimeout(() => setCopied(null), 2000);
@@ -382,8 +386,20 @@ const UTMLinksManagement: React.FC<UTMLinksManagementProps> = ({ refreshTrigger 
                   <h4 className="font-medium text-green-900">UTM Link Generated Successfully!</h4>
                 </div>
                 <div className="space-y-3">
-                  <div className="p-3 bg-white rounded border break-all text-sm font-mono">
-                    {generatedLink.tracking_url}
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-700">
+                      {generatedLink.tracking_type === 'direct_ga4' ? '🎯 Short Clean URL:' : '🔄 Short Redirect URL:'}
+                    </p>
+                    <div className="p-3 bg-white rounded border break-all text-sm font-mono">
+                      {generatedLink.tracking_type === 'direct_ga4'
+                        ? generatedLink.shareable_url
+                        : `${window.location.origin}${generatedLink.shareable_url}`}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {generatedLink.tracking_type === 'direct_ga4'
+                        ? '✅ Goes directly to destination with UTM parameters'
+                        : '✅ Short branded URL that routes through your server'}
+                    </p>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -719,18 +735,25 @@ const UTMLinksManagement: React.FC<UTMLinksManagementProps> = ({ refreshTrigger 
                             </a>
                           </div>
                           <div className="bg-gray-50 p-3 rounded-lg border">
-                            <p className="text-xs font-medium text-gray-700 mb-1">
-                              {link.tracking_type === 'direct_ga4' ? '🎯 Share This Clean URL:' : '🔄 Share This Redirect URL:'}
-                            </p>
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-xs font-medium text-gray-700">
+                                {link.tracking_type === 'direct_ga4' ? '🎯 Short GA4 URL:' : '🔄 Short Redirect URL:'}
+                              </p>
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                                SHORT
+                              </span>
+                            </div>
                             <div className="font-mono text-xs text-gray-800 break-all bg-white p-2 rounded border">
                               {link.tracking_type === 'direct_ga4'
-                                ? link.shareable_url
+                                ? (link.shareable_url.startsWith('/')
+                                    ? `${window.location.origin}${link.shareable_url}`
+                                    : link.shareable_url)
                                 : `${window.location.origin}${link.shareable_url}`}
                             </div>
                             <p className="text-xs text-gray-500 mt-1">
                               {link.tracking_type === 'direct_ga4'
-                                ? '✅ Goes directly to destination with UTM parameters'
-                                : '✅ Routes through your server for detailed analytics'}
+                                ? '✅ Short URL that redirects to destination with UTM parameters'
+                                : '✅ Short branded URL that routes through your server'}
                             </p>
                           </div>
                         </div>
