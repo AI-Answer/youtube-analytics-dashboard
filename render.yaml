@@ -28,10 +28,6 @@ services:
         sync: false
       - key: SECRET_KEY
         generateValue: true
-    disk:
-      name: youtube-analytics-data
-      mountPath: /opt/render/project/src/backend
-      sizeGB: 1
     
   # Next.js Frontend Service
   - type: web
