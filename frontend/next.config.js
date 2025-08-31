@@ -20,7 +20,7 @@ const nextConfig = {
   },
   // Production optimizations
   experimental: {
-    optimizeCss: true,
+    // optimizeCss: true, // Disabled due to critters module issues
   },
   // Ensure proper trailing slash handling
   trailingSlash: false,

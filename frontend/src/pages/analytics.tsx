@@ -43,7 +43,7 @@ const Analytics: NextPage = () => {
     setLoading({ isLoading: true });
     try {
       // Fetch combined analytics data
-      const response = await fetch(`/api/analytics/combined?period=${selectedPeriod}`);
+      const response = await fetch(`/api/v1/analytics/combined?period=${selectedPeriod}`);
       if (response.ok) {
         const data = await response.json();
         setAnalyticsData(data);
