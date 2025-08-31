@@ -5,7 +5,7 @@ import React from 'react';
 import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from '@heroicons/react/24/solid';
 import { MetricCardProps } from '@/types';
 
-export default function MetricCard({
+function MetricCard({
   title,
   value,
   change,
@@ -101,3 +101,5 @@ export default function MetricCard({
     </div>
   );
 }
+
+export default MetricCard;

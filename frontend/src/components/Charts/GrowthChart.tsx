@@ -26,7 +26,7 @@ interface GrowthChartProps {
   className?: string;
 }
 
-export default function GrowthChart({
+function GrowthChart({
   data,
   title,
   color = '#f054ff',
@@ -170,3 +170,5 @@ export default function GrowthChart({
     </div>
   );
 }
+
+export default GrowthChart;

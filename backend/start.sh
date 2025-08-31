@@ -4,17 +4,23 @@
 
 echo "Starting YouTube Analytics Backend..."
 
+# Activate virtual environment if it exists
+if [ -d "venv" ]; then
+    echo "Activating virtual environment..."
+    source venv/bin/activate
+fi
+
 # Set environment variables for production
 export ENVIRONMENT=production
 export DEBUG=false
 
 # Create database tables if they don't exist
 echo "Initializing database..."
-python -c "from app.core.database import create_tables; create_tables()"
+python3 -c "from app.core.database import create_tables; create_tables()"
 
 # Run database migrations if needed
 echo "Running database migrations..."
-python -c "
+python3 -c "
 import os
 import sqlite3
 from pathlib import Path
@@ -42,4 +48,4 @@ else:
 
 # Start the FastAPI server
 echo "Starting FastAPI server on port $PORT..."
-exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1
+exec python3 -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1
