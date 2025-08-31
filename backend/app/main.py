@@ -51,7 +51,7 @@ app.add_exception_handler(Exception, general_exception_handler)
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -81,12 +81,45 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
-    return {
-        "status": "healthy",
-        "environment": settings.ENVIRONMENT,
-        "version": settings.VERSION
-    }
+    """Health check endpoint for deployment verification."""
+    import os
+    import sqlite3
+
+    try:
+        # Check database connection
+        db_path = "youtube_analytics.db"
+        db_exists = os.path.exists(db_path)
+
+        if db_exists:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM utm_links")
+            utm_count = cursor.fetchone()[0]
+            conn.close()
+        else:
+            utm_count = 0
+
+        return {
+            "status": "healthy",
+            "environment": settings.ENVIRONMENT,
+            "version": settings.VERSION,
+            "database": {
+                "exists": db_exists,
+                "utm_links_count": utm_count
+            },
+            "features": {
+                "utm_tracking": True,
+                "pretty_urls": True,
+                "click_analytics": True
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "environment": settings.ENVIRONMENT,
+            "version": settings.VERSION
+        }
 
 
 # Include API routers
