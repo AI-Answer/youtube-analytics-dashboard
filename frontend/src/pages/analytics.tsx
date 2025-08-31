@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { NextPage } from 'next';
 import Layout from '../components/Layout/Layout';
-import { 
-  CombinedVideoAnalytics, 
-  VideoOverview, 
-  UTMLink, 
+import MetricCard from '../components/UI/MetricCard';
+import {
+  CombinedVideoAnalytics,
+  VideoOverview,
+  UTMLink,
   GrowthTrend,
-  LoadingState 
+  LoadingState
 } from '../types';
-import { 
-  ChartBarIcon, 
-  EyeIcon, 
+import {
+  ChartBarIcon,
+  EyeIcon,
   CursorArrowRaysIcon,
   TrendingUpIcon,
   TrendingDownIcon,
@@ -80,28 +81,7 @@ const Analytics: NextPage = () => {
     );
   };
 
-  const MetricCard: React.FC<{
-    title: string;
-    value: string;
-    growth?: number;
-    icon: React.ComponentType<any>;
-    color: string;
-  }> = ({ title, value, growth, icon: Icon, color }) => (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          {growth !== undefined && (
-            <GrowthIndicator value={growth} className="mt-1" />
-          )}
-        </div>
-        <div className={`p-3 rounded-full ${color}`}>
-          <Icon className="h-6 w-6 text-white" />
-        </div>
-      </div>
-    </div>
-  );
+
 
   const VideoAnalyticsRow: React.FC<{ video: CombinedVideoAnalytics }> = ({ video }) => (
     <tr className="hover:bg-gray-50">
@@ -220,29 +200,28 @@ const Analytics: NextPage = () => {
               <MetricCard
                 title="Total Views"
                 value={formatNumber(analyticsData.totalViews)}
-                growth={analyticsData.weeklyGrowth.views}
+                change={analyticsData.weeklyGrowth.views}
+                changeLabel="this week"
                 icon={EyeIcon}
-                color="bg-blue-500"
               />
               <MetricCard
                 title="Total Clicks"
                 value={formatNumber(analyticsData.totalClicks)}
-                growth={analyticsData.weeklyGrowth.clicks}
+                change={analyticsData.weeklyGrowth.clicks}
+                changeLabel="this week"
                 icon={CursorArrowRaysIcon}
-                color="bg-green-500"
               />
               <MetricCard
                 title="Average CTR"
                 value={`${(analyticsData.averageCTR * 100).toFixed(2)}%`}
-                growth={analyticsData.weeklyGrowth.ctr}
+                change={analyticsData.weeklyGrowth.ctr}
+                changeLabel="this week"
                 icon={ChartBarIcon}
-                color="bg-purple-500"
               />
               <MetricCard
                 title="Active Videos"
                 value={analyticsData.videos.length.toString()}
                 icon={TrendingUpIcon}
-                color="bg-orange-500"
               />
             </div>
 
