@@ -8,7 +8,6 @@ import {
   ChartBarIcon,
   VideoCameraIcon,
   GlobeAltIcon,
-  Cog6ToothIcon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
@@ -23,7 +22,6 @@ const navigation = [
   { name: 'Overview', href: '/', icon: ChartBarIcon },
   { name: 'Videos', href: '/videos', icon: VideoCameraIcon },
   { name: 'Traffic', href: '/traffic', icon: GlobeAltIcon },
-  { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
 ];
 
 export default function Header({ className = '' }: HeaderProps) {
@@ -103,8 +101,8 @@ export default function Header({ className = '' }: HeaderProps) {
               Sync
             </button>
 
-            {/* Authentication */}
-            {isAuthenticated ? (
+            {/* Authentication Status */}
+            {isAuthenticated && (
               <div className="flex items-center space-x-2">
                 <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
                   <UserCircleIcon className="w-5 h-5 text-gray-400" />
@@ -118,13 +116,6 @@ export default function Header({ className = '' }: HeaderProps) {
                   <ArrowRightOnRectangleIcon className="w-4 h-4" />
                 </button>
               </div>
-            ) : (
-              <button
-                onClick={handleAuth}
-                className="btn-primary btn-sm"
-              >
-                Sign In
-              </button>
             )}
           </div>
         </div>

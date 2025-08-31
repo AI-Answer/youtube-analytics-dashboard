@@ -1,309 +1,236 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
-import useSWR from 'swr';
 import Layout from '@/components/Layout/Layout';
-import apiClient from '@/services/api';
-import {
-  GlobeAltIcon,
-  ArrowUpIcon,
-  ChartBarIcon,
-  UsersIcon,
-  EyeIcon
-} from '@heroicons/react/24/outline';
+import { VideoTrafficAnalytics } from '../components/VideoTrafficAnalytics';
+import UTMLinksManagement from '../components/UTMLinksManagement';
+import { Link2, TrendingUp, BarChart3, Database } from 'lucide-react';
 
-interface TrafficData {
-  period_start: string;
-  period_end: string;
-  total_clicks: number;
-  total_page_views: number;
-  average_ctr: number;
-  traffic_data: any[];
-  top_sources: any[];
+interface Video {
+  video_id: string;
+  title: string;
+  view_count: number;
+  published_at: string;
 }
 
-export default function TrafficPage() {
-  const [showRawData, setShowRawData] = useState(false);
-  const [timeRange, setTimeRange] = useState(30);
+interface UTMLink {
+  id: number;
+  video_id: string;
+  destination_url: string;
+  tracking_url: string;
+  utm_campaign: string;
+  utm_content?: string;
+  utm_term?: string;
+  created_at: string;
+}
 
-  // Fetch traffic data
-  const { data: trafficData, isLoading, error } = useSWR<TrafficData>(
-    `/api/v1/analytics/traffic/website?days=${timeRange}`,
-    () => apiClient.getWebsiteTraffic({ days: timeRange })
-  );
+const TrafficPage: React.FC = () => {
+  const router = useRouter();
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState<'utm-links' | 'analytics'>('utm-links');
 
-  // Mock traffic data for demonstration
-  const mockTrafficSources = [
-    { source: 'YouTube Channel', clicks: 156, percentage: 45.2 },
-    { source: 'YouTube Videos', clicks: 89, percentage: 25.8 },
-    { source: 'Google Search', clicks: 67, percentage: 19.4 },
-    { source: 'Direct', clicks: 23, percentage: 6.7 },
-    { source: 'Social Media', clicks: 10, percentage: 2.9 }
-  ];
+  useEffect(() => {
+    fetchVideos();
+  }, []);
 
-  const mockWeeklyData = [
-    { week: 'Week 1', clicks: 45, views: 123 },
-    { week: 'Week 2', clicks: 67, views: 189 },
-    { week: 'Week 3', clicks: 89, views: 234 },
-    { week: 'Week 4', clicks: 134, views: 298 }
-  ];
+  useEffect(() => {
+    // Handle tab query parameter for redirects from /utm-links
+    if (router.query.tab === 'management') {
+      setActiveTab('utm-links');
+    }
+  }, [router.query.tab]);
 
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-    return num.toString();
+  const fetchVideos = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/v1/analytics/videos');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch videos');
+      }
+
+      const data = await response.json();
+      setVideos(data.videos || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load videos');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleLinkCreated = (link: UTMLink) => {
+    // Trigger refresh of analytics data
+    setRefreshTrigger(prev => prev + 1);
+
+    // Don't automatically switch tabs - let user see the success message first
+    // setActiveTab('analytics');
+  };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gray-50">
+          <Head>
+            <title>Video Traffic Tracking - YouTube Analytics</title>
+            <meta name="description" content="Track video-driven traffic and link performance" />
+          </Head>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="space-y-4">
+                  <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   if (error) {
     return (
       <Layout>
-        <div className="text-center py-12">
-          <div className="text-red-500 text-lg">Failed to load traffic data</div>
-          <p className="text-gray-600 mt-2">Please try refreshing the page</p>
+        <div className="min-h-screen bg-gray-50">
+          <Head>
+            <title>Video Traffic Tracking - YouTube Analytics</title>
+            <meta name="description" content="Track video-driven traffic and link performance" />
+          </Head>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="text-center">
+                <p className="text-red-600 mb-4">{error}</p>
+                <button
+                  onClick={fetchVideos}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </Layout>
     );
   }
 
   return (
-    <>
-      <Head>
-        <title>Website Traffic - YouTube Analytics</title>
-        <meta name="description" content="Track website traffic from YouTube videos and channel" />
-      </Head>
+    <Layout>
+      <div className="min-h-screen bg-gray-50">
+        <Head>
+          <title>Video Traffic Tracking - YouTube Analytics</title>
+          <meta name="description" content="Track video-driven traffic and link performance with UTM parameters" />
+        </Head>
 
-      <Layout>
-        <div className="container-app section-padding space-y-6">
-          {/* Important Disclaimer */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-yellow-900 mb-2">
-              ⚠️ Demo Data Only - Not for Real Analysis
-            </h2>
-            <p className="text-yellow-800 mb-4">
-              <strong>All traffic data shown below is mock/placeholder data for demonstration purposes only.</strong>
-              This data cannot be used for real business analysis or decision making.
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Page Header */}
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-2">
+              <Link2 className="w-8 h-8 text-blue-600" />
+              <h1 className="text-3xl font-bold text-gray-900">Video Traffic Tracking</h1>
+            </div>
+            <p className="text-gray-600 max-w-3xl">
+              Generate UTM tracking links for your YouTube videos and analyze how your content drives traffic to external destinations.
+              Track click-through rates, conversion metrics, and identify your most effective videos for driving traffic.
             </p>
-            <div className="text-sm text-yellow-700">
-              <p>To get real website traffic data, you need to implement proper analytics tracking such as:</p>
-              <p>• Google Analytics 4 • PostHog • Mixpanel • Custom tracking with UTM parameters</p>
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="mb-6">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8">
+                <button
+                  onClick={() => setActiveTab('utm-links')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'utm-links'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Link2 className="w-4 h-4" />
+                    UTM Links
+                  </div>
+                </button>
+                <button
+                  onClick={() => setActiveTab('analytics')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'analytics'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4" />
+                    Traffic Analytics
+                  </div>
+                </button>
+              </nav>
             </div>
           </div>
 
-          {/* Header */}
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Website Traffic
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Demo dashboard - implement real analytics for actual data
-              </p>
-            </div>
-            
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowRawData(!showRawData)}
-                className={`px-4 py-2 rounded-lg border transition-colors ${
-                  showRawData 
-                    ? 'bg-purple-50 border-purple-200 text-purple-700' 
-                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <ChartBarIcon className="h-4 w-4 inline mr-2" />
-                Raw Data
-              </button>
-              
-              <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(Number(e.target.value))}
-                className="px-4 py-2 border border-gray-200 rounded-lg bg-white text-gray-700"
-              >
-                <option value={7}>Last 7 days</option>
-                <option value={30}>Last 30 days</option>
-                <option value={90}>Last 90 days</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Traffic Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Clicks</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {trafficData?.total_clicks || 345}
-                  </p>
-                </div>
-                <ArrowUpIcon className="h-8 w-8 text-blue-500" />
-              </div>
-              <div className="mt-2">
-                <span className="text-sm text-gray-500">
-                  Last {timeRange} days (mock data)
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Page Views</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {trafficData?.total_page_views || 844}
-                  </p>
-                </div>
-                <EyeIcon className="h-8 w-8 text-green-500" />
-              </div>
-              <div className="mt-2">
-                <span className="text-sm text-gray-500">
-                  Last {timeRange} days (mock data)
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Click-through Rate</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {trafficData?.average_ctr?.toFixed(1) || '2.4'}%
-                  </p>
-                </div>
-                <ArrowUpIcon className="h-8 w-8 text-purple-500" />
-              </div>
-              <div className="mt-2">
-                <span className="text-sm text-gray-500">
-                  Average CTR
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Top Source</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    YouTube
-                  </p>
-                </div>
-                <GlobeAltIcon className="h-8 w-8 text-orange-500" />
-              </div>
-              <div className="mt-2">
-                <span className="text-sm text-gray-500">
-                  {mockTrafficSources[0].percentage}% of traffic
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Loading State */}
-          {isLoading && (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-              <p className="text-gray-600 mt-4">Loading traffic data...</p>
-            </div>
+          {/* Tab Content */}
+          {activeTab === 'utm-links' && (
+            <UTMLinksManagement
+              refreshTrigger={refreshTrigger}
+              videos={videos}
+            />
           )}
 
-          {/* Raw Data View */}
-          {showRawData && !isLoading && (
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Raw Data</h3>
-              <div className="overflow-x-auto">
-                <pre className="text-xs text-gray-600 bg-gray-50 p-4 rounded-lg overflow-auto max-h-96">
-                  {JSON.stringify({
-                    api_data: trafficData,
-                    mock_sources: mockTrafficSources,
-                    mock_weekly: mockWeeklyData,
-                    api_endpoint: `/api/v1/analytics/traffic/website?days=${timeRange}`
-                  }, null, 2)}
-                </pre>
-              </div>
-            </div>
+          {activeTab === 'analytics' && (
+            <VideoTrafficAnalytics refreshTrigger={refreshTrigger} />
           )}
 
-          {/* Traffic Sources */}
-          {!isLoading && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Traffic Sources</h3>
-                <div className="space-y-4">
-                  {mockTrafficSources.map((source, index) => (
-                    <div key={source.source} className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className={`w-3 h-3 rounded-full mr-3 ${
-                          index === 0 ? 'bg-blue-500' :
-                          index === 1 ? 'bg-green-500' :
-                          index === 2 ? 'bg-purple-500' :
-                          index === 3 ? 'bg-orange-500' : 'bg-gray-500'
-                        }`}></div>
-                        <span className="text-sm font-medium text-gray-900">{source.source}</span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-gray-900">{source.clicks} clicks</div>
-                        <div className="text-xs text-gray-500">{source.percentage}%</div>
-                      </div>
-                    </div>
-                  ))}
+          {/* Footer Info */}
+          <div className="mt-12 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-start gap-4">
+              <TrendingUp className="w-6 h-6 text-blue-600 mt-1" />
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">About Video Traffic Tracking</h3>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  This feature helps you understand how your YouTube content drives traffic to external destinations.
+                  By using UTM parameters, you can track which videos are most effective at converting viewers into website visitors,
+                  customers, or subscribers. The analytics show correlation between video performance (views, engagement) and
+                  click-through rates to help you optimize your content strategy.
+                </p>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <strong className="text-gray-900">Metrics Tracked:</strong>
+                    <ul className="text-gray-600 mt-1 space-y-1">
+                      <li>• Click-through rates (CTR)</li>
+                      <li>• Views-to-clicks ratio</li>
+                      <li>• Daily click trends</li>
+                      <li>• Link performance by video</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <strong className="text-gray-900">Use Cases:</strong>
+                    <ul className="text-gray-600 mt-1 space-y-1">
+                      <li>• Product launches and promotions</li>
+                      <li>• Blog post and content marketing</li>
+                      <li>• Lead generation campaigns</li>
+                      <li>• Affiliate marketing tracking</li>
+                    </ul>
+                  </div>
                 </div>
-              </div>
-
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Weekly Trends</h3>
-                <div className="space-y-4">
-                  {mockWeeklyData.map((week, index) => (
-                    <div key={week.week} className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-900">{week.week}</span>
-                      <div className="flex space-x-4">
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-blue-600">{week.clicks} clicks</div>
-                          <div className="text-xs text-gray-500">clicks</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-green-600">{week.views} views</div>
-                          <div className="text-xs text-gray-500">page views</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Setup Instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-2">
-              <GlobeAltIcon className="h-5 w-5 inline mr-2" />
-              Real Website Traffic Tracking Setup
-            </h3>
-            <p className="text-blue-800 mb-4">
-              <strong>Note:</strong> The traffic data shown above is mock data for demonstration. To track real website traffic from your YouTube content, implement these solutions:
-            </p>
-            <div className="space-y-3 text-sm text-blue-700">
-              <div>
-                <p><strong>1. Analytics Platforms:</strong></p>
-                <p className="ml-4">• PostHog - Track user behavior and conversions</p>
-                <p className="ml-4">• Google Analytics 4 - Set up YouTube as a traffic source</p>
-                <p className="ml-4">• Mixpanel, Amplitude - Advanced user tracking</p>
-              </div>
-              <div>
-                <p><strong>2. UTM Parameter Tracking:</strong></p>
-                <p className="ml-4">• Add ?utm_source=youtube&utm_medium=video&utm_campaign=video_title to all your links</p>
-                <p className="ml-4">• Use different UTM campaigns for each video to track performance</p>
-              </div>
-              <div>
-                <p><strong>3. Short Link Services:</strong></p>
-                <p className="ml-4">• Bit.ly, TinyURL with click tracking enabled</p>
-                <p className="ml-4">• Custom domain short links (yoursite.com/yt-video1)</p>
-              </div>
-              <div>
-                <p><strong>4. YouTube Studio Integration:</strong></p>
-                <p className="ml-4">• Check "Traffic sources" → "External" for click data</p>
-                <p className="ml-4">• Monitor "Cards and end screens" performance</p>
               </div>
             </div>
           </div>
         </div>
-      </Layout>
-    </>
+      </div>
+    </Layout>
   );
-}
+};
+
+export default TrafficPage;

@@ -48,6 +48,7 @@ class Video(BaseModel):
     channel = relationship("Channel", back_populates="videos")
     video_metrics = relationship("VideoMetrics", back_populates="video")
     weekly_metrics = relationship("WeeklyVideoMetrics", back_populates="video", cascade="all, delete-orphan")
+    # Note: UTM links relationship removed to allow tracking new videos without FK constraint
     
     def __repr__(self):
         return f"<Video(id={self.id}, video_id={self.video_id}, title={self.title[:50]}...)>"

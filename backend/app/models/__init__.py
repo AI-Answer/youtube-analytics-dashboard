@@ -7,6 +7,7 @@ from app.models.video import Video, VideoMetrics
 from app.models.traffic import WebsiteTraffic, ConversionEvent, YouTubeAnalytics
 from app.models.weekly_metrics import WeeklyVideoMetrics, WeeklyChannelSummary, VideoPerformanceSnapshot
 from app.models.daily_sync import DailyYouTubeSync, YouTubeDataSnapshot, SyncConfiguration, SyncMetrics
+from app.models.utm_link import UTMLink, LinkClick
 
 __all__ = [
     "BaseModel",
@@ -25,5 +26,7 @@ __all__ = [
     "DailyYouTubeSync",
     "YouTubeDataSnapshot",
     "SyncConfiguration",
-    "SyncMetrics"
+    "SyncMetrics",
+    "UTMLink",
+    "LinkClick"
 ]

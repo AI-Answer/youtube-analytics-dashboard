@@ -1,0 +1,298 @@
+"""
+UTM Link tracking API endpoints for video-driven traffic analytics.
+"""
+from datetime import datetime
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.services.utm_service import UTMService
+from app.models.utm_link import UTMLink
+from app.api.v1.utm_schemas import (
+    UTMLinkCreate,
+    UTMLinkResponse,
+    LinkClickCreate,
+    LinkClickResponse,
+    LinkAnalyticsResponse,
+    VideoLinkPerformanceResponse,
+    VideoTrafficCorrelationResponse,
+    UTMLinksListResponse,
+    VideoTrafficCorrelationListResponse
+)
+
+router = APIRouter()
+
+
+@router.post("/utm-links", response_model=UTMLinkResponse, status_code=201)
+async def create_utm_link(
+    utm_link_data: UTMLinkCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new UTM tracking link for a YouTube video.
+    
+    This endpoint generates a trackable URL with UTM parameters that can be used
+    in video descriptions, comments, or other promotional materials.
+    """
+    try:
+        utm_service = UTMService(db)
+        utm_link = utm_service.create_utm_link(
+            video_id=utm_link_data.video_id,
+            destination_url=utm_link_data.destination_url,
+            utm_content=utm_link_data.utm_content,
+            utm_term=utm_link_data.utm_term
+        )
+        return utm_link
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create UTM link: {str(e)}")
+
+
+@router.get("/utm-links", response_model=UTMLinksListResponse)
+async def get_utm_links(
+    video_id: Optional[str] = Query(None, description="Filter by video ID"),
+    active_only: bool = Query(True, description="Show only active links"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of links to return"),
+    offset: int = Query(0, ge=0, description="Number of links to skip"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get UTM tracking links with optional filtering.
+    
+    Returns a list of UTM links with their tracking URLs and basic metadata.
+    """
+    try:
+        utm_service = UTMService(db)
+        links_with_stats = utm_service.get_utm_links_with_stats(
+            video_id=video_id,
+            active_only=active_only,
+            limit=limit,
+            offset=offset
+        )
+
+        return UTMLinksListResponse(
+            timestamp=datetime.utcnow(),
+            total_links=len(links_with_stats),
+            links=links_with_stats
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve UTM links: {str(e)}")
+
+
+@router.get("/utm-links/{link_id}/analytics", response_model=LinkAnalyticsResponse)
+async def get_link_analytics(
+    link_id: int,
+    days_back: int = Query(30, ge=1, le=365, description="Number of days to include in analytics"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed analytics for a specific UTM tracking link.
+    
+    Returns click data, daily trends, and performance metrics for the link.
+    """
+    try:
+        utm_service = UTMService(db)
+        analytics = utm_service.get_link_analytics(link_id, days_back)
+        return analytics
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve link analytics: {str(e)}")
+
+
+@router.post("/utm-links/{link_id}/click", response_model=LinkClickResponse, status_code=201)
+async def record_link_click(
+    link_id: int,
+    request: Request,
+    click_data: Optional[LinkClickCreate] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Record a click event for a UTM tracking link.
+    
+    This endpoint is typically called when a user clicks on a tracked link.
+    It captures metadata about the click for analytics purposes.
+    """
+    try:
+        utm_service = UTMService(db)
+        
+        # Extract request metadata if not provided
+        user_agent = None
+        ip_address = None
+        referrer = None
+        
+        if click_data:
+            user_agent = click_data.user_agent
+            ip_address = click_data.ip_address
+            referrer = click_data.referrer
+        
+        # Fallback to request headers
+        if not user_agent:
+            user_agent = request.headers.get("user-agent")
+        if not ip_address:
+            ip_address = request.client.host if request.client else None
+        if not referrer:
+            referrer = request.headers.get("referer")
+        
+        click = utm_service.record_click(
+            utm_link_id=link_id,
+            user_agent=user_agent,
+            ip_address=ip_address,
+            referrer=referrer
+        )
+        return click
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to record click: {str(e)}")
+
+
+@router.get("/videos/{video_id}/link-performance", response_model=VideoLinkPerformanceResponse)
+async def get_video_link_performance(
+    video_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get link performance data for a specific YouTube video.
+    
+    Returns all UTM links associated with the video and their performance metrics,
+    including click-through rates and conversion data.
+    """
+    try:
+        utm_service = UTMService(db)
+        performance = utm_service.get_video_link_performance(video_id)
+        return performance
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve video link performance: {str(e)}")
+
+
+@router.get("/analytics/video-traffic-correlation", response_model=VideoTrafficCorrelationListResponse)
+async def get_video_traffic_correlation(
+    days_back: int = Query(30, ge=1, le=365, description="Number of days to include in correlation analysis"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get correlation data between video views and link clicks.
+    
+    Returns analytics showing how video performance correlates with link click-through rates,
+    helping identify which types of content drive the most traffic.
+    """
+    try:
+        utm_service = UTMService(db)
+        correlation_data = utm_service.get_video_traffic_correlation(days_back)
+        
+        return VideoTrafficCorrelationListResponse(
+            timestamp=datetime.utcnow(),
+            total_videos=len(correlation_data),
+            correlation_data=correlation_data
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve correlation data: {str(e)}")
+
+
+# Redirect endpoint for UTM links (optional - for direct link handling)
+@router.get("/r/{link_id}")
+async def redirect_utm_link(
+    link_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Redirect endpoint for UTM tracking links.
+    
+    This endpoint can be used to create shorter URLs that redirect to the destination
+    while recording click analytics. Usage: /api/v1/r/{link_id}
+    """
+    try:
+        from fastapi.responses import RedirectResponse
+        
+        utm_service = UTMService(db)
+
+        # Get the specific UTM link by ID
+        utm_link = db.query(UTMLink).filter(UTMLink.id == link_id, UTMLink.is_active == 1).first()
+
+        if not utm_link:
+            raise HTTPException(status_code=404, detail="UTM link not found")
+        
+        # Record the click
+        utm_service.record_click(
+            utm_link_id=link_id,
+            user_agent=request.headers.get("user-agent"),
+            ip_address=request.client.host if request.client else None,
+            referrer=request.headers.get("referer")
+        )
+        
+        # Redirect to the tracking URL
+        return RedirectResponse(url=utm_link.tracking_url, status_code=302)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to redirect: {str(e)}")
+
+
+@router.get("/go/{slug}")
+async def redirect_pretty_utm_link(
+    slug: str,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Redirect to the destination URL using pretty slug and track the click.
+    This endpoint provides user-friendly URLs like /go/bookedin-product
+    """
+    try:
+        from fastapi.responses import RedirectResponse
+
+        utm_service = UTMService(db)
+
+        # Get the UTM link by pretty slug
+        utm_link = db.query(UTMLink).filter(
+            UTMLink.pretty_slug == slug,
+            UTMLink.is_active == 1
+        ).first()
+
+        if not utm_link:
+            raise HTTPException(status_code=404, detail="Link not found")
+
+        # Record the click
+        utm_service.record_click(
+            utm_link_id=utm_link.id,
+            user_agent=request.headers.get("user-agent"),
+            ip_address=request.client.host if request.client else None,
+            referrer=request.headers.get("referer")
+        )
+
+        # Redirect to the tracking URL (destination with UTM parameters)
+        return RedirectResponse(url=utm_link.tracking_url, status_code=302)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to redirect: {str(e)}")
+
+
+@router.delete("/utm-links/{link_id}")
+async def delete_utm_link(
+    link_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a UTM tracking link."""
+    try:
+        utm_service = UTMService(db)
+        success = utm_service.delete_utm_link(link_id)
+
+        if not success:
+            raise HTTPException(status_code=404, detail="UTM link not found")
+
+        return {
+            "success": True,
+            "message": "UTM link deleted successfully"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting UTM link {link_id}: {str(e)}")

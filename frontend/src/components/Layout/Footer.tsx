@@ -83,11 +83,6 @@ export default function Footer({ className = '' }: FooterProps) {
                 </Link>
               </li>
               <li>
-                <Link href="/settings" className="text-gray-600 hover:text-gray-900 text-sm transition-colors duration-200">
-                  Settings
-                </Link>
-              </li>
-              <li>
                 <Link href="/auth" className="text-gray-600 hover:text-gray-900 text-sm transition-colors duration-200">
                   Authentication
                 </Link>
