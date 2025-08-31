@@ -43,7 +43,8 @@ async def create_utm_link(
             video_id=utm_link_data.video_id,
             destination_url=utm_link_data.destination_url,
             utm_content=utm_link_data.utm_content,
-            utm_term=utm_link_data.utm_term
+            utm_term=utm_link_data.utm_term,
+            tracking_type=utm_link_data.tracking_type
         )
         return utm_link
     except ValueError as e:
@@ -241,14 +242,91 @@ async def redirect_utm_link(
             ip_address=request.client.host if request.client else None,
             referrer=request.headers.get("referer")
         )
-        
-        # Redirect to the tracking URL
-        return RedirectResponse(url=utm_link.tracking_url, status_code=302)
-        
+
+        # Send event to Google Analytics 4 if enabled
+        try:
+            if utm_link.ga4_enabled:
+                await ga4_service.send_utm_click_event(
+                    utm_link=utm_link,
+                    user_agent=request.headers.get("user-agent"),
+                    ip_address=request.client.host if request.client else None,
+                    referrer=request.headers.get("referer")
+                )
+        except Exception as ga4_error:
+            # Don't fail the request if GA4 tracking fails
+            from loguru import logger
+            logger.warning(f"GA4 event tracking failed for link {link_id}: {ga4_error}")
+
+        # For direct GA4 links, redirect to the direct URL with UTM parameters
+        # For server redirect links, redirect to the destination URL
+        if utm_link.tracking_type == 'direct_ga4':
+            redirect_url = utm_link.direct_url
+        else:
+            redirect_url = utm_link.destination_url
+
+        return RedirectResponse(url=redirect_url, status_code=302)
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to redirect: {str(e)}")
+
+
+@router.get("/track/{link_id}")
+async def track_direct_ga4_click(
+    link_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Fast tracking endpoint specifically for Direct GA4 links.
+    Logs the click and redirects to destination with UTM parameters.
+    """
+    try:
+        from fastapi.responses import RedirectResponse
+
+        utm_service = UTMService(db)
+
+        # Get the specific UTM link by ID
+        utm_link = db.query(UTMLink).filter(UTMLink.id == link_id, UTMLink.is_active == 1).first()
+
+        if not utm_link:
+            raise HTTPException(status_code=404, detail="UTM link not found")
+
+        # Only handle direct GA4 links through this endpoint
+        if utm_link.tracking_type != 'direct_ga4':
+            # Redirect to regular tracking endpoint for server redirect links
+            return RedirectResponse(url=f"/api/v1/r/{link_id}", status_code=302)
+
+        # Record the click (fast database operation)
+        utm_service.record_click(
+            utm_link_id=link_id,
+            user_agent=request.headers.get("user-agent"),
+            ip_address=request.client.host if request.client else None,
+            referrer=request.headers.get("referer")
+        )
+
+        # Send event to Google Analytics 4 if enabled
+        try:
+            if utm_link.ga4_enabled:
+                await ga4_service.send_utm_click_event(
+                    utm_link=utm_link,
+                    user_agent=request.headers.get("user-agent"),
+                    ip_address=request.client.host if request.client else None,
+                    referrer=request.headers.get("referer")
+                )
+        except Exception as ga4_error:
+            # Don't fail the request if GA4 tracking fails
+            from loguru import logger
+            logger.warning(f"GA4 event tracking failed for link {link_id}: {ga4_error}")
+
+        # Redirect to destination with UTM parameters
+        return RedirectResponse(url=utm_link.direct_url, status_code=302)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to track direct GA4 click: {str(e)}")
 
 
 @router.get("/go/{slug}")
@@ -282,6 +360,20 @@ async def redirect_pretty_utm_link(
             ip_address=request.client.host if request.client else None,
             referrer=request.headers.get("referer")
         )
+
+        # Send event to Google Analytics 4 if enabled
+        try:
+            if utm_link.ga4_enabled:
+                await ga4_service.send_utm_click_event(
+                    utm_link=utm_link,
+                    user_agent=request.headers.get("user-agent"),
+                    ip_address=request.client.host if request.client else None,
+                    referrer=request.headers.get("referer")
+                )
+        except Exception as ga4_error:
+            # Don't fail the request if GA4 tracking fails
+            from loguru import logger
+            logger.warning(f"GA4 event tracking failed for link {utm_link.id}: {ga4_error}")
 
         # Redirect to the tracking URL (destination with UTM parameters)
         return RedirectResponse(url=utm_link.tracking_url, status_code=302)

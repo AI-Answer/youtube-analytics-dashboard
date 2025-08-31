@@ -29,6 +29,10 @@ class UTMLink(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     is_active = Column(Integer, default=1)  # 1 = active, 0 = inactive
 
+    # Tracking Method Configuration
+    tracking_type = Column(String(20), default="server_redirect", nullable=False)  # 'server_redirect' or 'direct_ga4'
+    direct_url = Column(Text, nullable=True)  # Direct URL with UTM parameters for GA4-only tracking
+
     # Google Analytics 4 Integration
     ga4_enabled = Column(Boolean, default=True, nullable=False)  # Enable GA4 tracking
     ga4_clicks = Column(Integer, default=0, nullable=False)  # GA4 event count
@@ -51,8 +55,35 @@ class UTMLink(Base):
         """Get the total number of clicks for this UTM link."""
         return len(self.clicks)
 
+    @property
+    def is_server_redirect(self):
+        """Check if this link uses server redirect tracking."""
+        return self.tracking_type == "server_redirect"
+
+    @property
+    def is_direct_ga4(self):
+        """Check if this link uses direct GA4 tracking."""
+        return self.tracking_type == "direct_ga4"
+
+    @property
+    def shareable_url(self):
+        """Get the URL that should be shared publicly."""
+        if self.is_direct_ga4:
+            # Return the direct destination URL with UTM parameters (any domain)
+            return self.direct_url or self.tracking_url
+        else:
+            # Get base URL from environment or use localhost for development
+            import os
+            base_url = os.getenv('BASE_URL', 'http://localhost:8000')
+
+            # Return pretty URL if available, otherwise redirect URL
+            if self.pretty_slug:
+                return f"{base_url}/api/v1/go/{self.pretty_slug}"
+            else:
+                return f"{base_url}/api/v1/r/{self.id}"
+
     def __repr__(self):
-        return f"<UTMLink(id={self.id}, video_id={self.video_id}, destination={self.destination_url[:50]}...)>"
+        return f"<UTMLink(id={self.id}, video_id={self.video_id}, tracking_type={self.tracking_type}, destination={self.destination_url[:50]}...)>"
 
 
 class LinkClick(Base):

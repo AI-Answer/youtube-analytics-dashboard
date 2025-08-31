@@ -7,6 +7,9 @@ interface UTMLink {
   destination_url: string;
   tracking_url: string;
   pretty_slug?: string;
+  tracking_type: 'server_redirect' | 'direct_ga4';
+  direct_url?: string;
+  shareable_url: string;
   utm_campaign: string;
   utm_content?: string;
   utm_term?: string;
@@ -41,6 +44,7 @@ const UTMLinksManagement: React.FC<UTMLinksManagementProps> = ({ refreshTrigger 
   const [destinationUrl, setDestinationUrl] = useState<string>('');
   const [utmContent, setUtmContent] = useState<string>('');
   const [utmTerm, setUtmTerm] = useState<string>('');
+  const [trackingType, setTrackingType] = useState<'server_redirect' | 'direct_ga4'>('direct_ga4');
   const [generatedLink, setGeneratedLink] = useState<UTMLink | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generatorCopied, setGeneratorCopied] = useState<boolean>(false);
@@ -123,6 +127,7 @@ const UTMLinksManagement: React.FC<UTMLinksManagementProps> = ({ refreshTrigger 
           destination_url: destinationUrl,
           utm_content: utmContent || undefined,
           utm_term: utmTerm || undefined,
+          tracking_type: trackingType,
         }),
       });
 
@@ -170,11 +175,11 @@ const UTMLinksManagement: React.FC<UTMLinksManagementProps> = ({ refreshTrigger 
 
   const handleCopyLink = async (link: UTMLink) => {
     try {
-      // Copy the pretty redirect URL if available, otherwise fall back to technical URL
-      const prettyUrl = link.pretty_slug
-        ? `${window.location.origin}/api/v1/go/${link.pretty_slug}`
-        : `${window.location.origin}/api/v1/r/${link.id}`;
-      await navigator.clipboard.writeText(prettyUrl);
+      // Use the shareable URL which is appropriate for the tracking type
+      const urlToCopy = link.tracking_type === 'direct_ga4'
+        ? link.shareable_url
+        : `${window.location.origin}${link.shareable_url}`;
+      await navigator.clipboard.writeText(urlToCopy);
       setCopied(link.id);
       setTimeout(() => setCopied(null), 2000);
     } catch (err) {
@@ -286,6 +291,52 @@ const UTMLinksManagement: React.FC<UTMLinksManagementProps> = ({ refreshTrigger 
 
   return (
     <div className="space-y-6">
+      {/* Workflow Explanation */}
+      <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border-2 border-green-200">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-green-100 rounded-full">
+            <Link2 className="w-8 h-8 text-green-600" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">🎯 UTM Link Creation Workflow</h2>
+            <p className="text-sm text-gray-700 mb-4">
+              Create UTM tracking links for your YouTube videos with two powerful tracking methods:
+            </p>
+            <div className="grid md:grid-cols-2 gap-4 text-sm mb-4">
+              <div className="bg-white p-4 rounded-lg border-2 border-green-200">
+                <h4 className="font-bold text-green-800 mb-2">🎯 Direct GA4 (Recommended)</h4>
+                <ul className="space-y-1 text-gray-600">
+                  <li>✅ Perfect for YouTube video descriptions</li>
+                  <li>✅ Clean, professional-looking URLs</li>
+                  <li>✅ Faster loading (no redirect delay)</li>
+                  <li>✅ Better user experience</li>
+                </ul>
+                <p className="text-xs text-green-700 mt-2 font-medium">
+                  Creates: https://yourdestination.com?utm_source=youtube...
+                </p>
+              </div>
+              <div className="bg-white p-4 rounded-lg border-2 border-blue-200">
+                <h4 className="font-bold text-blue-800 mb-2">🔄 Server Redirect (Advanced)</h4>
+                <ul className="space-y-1 text-gray-600">
+                  <li>✅ Detailed click analytics</li>
+                  <li>✅ A/B testing capabilities</li>
+                  <li>✅ Complete data ownership</li>
+                  <li>✅ Custom business logic</li>
+                </ul>
+                <p className="text-xs text-blue-700 mt-2 font-medium">
+                  Creates: https://yourdomain.com/api/v1/go/pretty-link
+                </p>
+              </div>
+            </div>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-xs text-yellow-800">
+                <strong>💡 Quick Start:</strong> Use Direct GA4 for most YouTube links. Switch to Server Redirect when you need advanced analytics or A/B testing.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="text-center">
         <div className="flex items-center justify-center gap-3 mb-4">
@@ -422,6 +473,59 @@ const UTMLinksManagement: React.FC<UTMLinksManagementProps> = ({ refreshTrigger 
                   placeholder="tutorial"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+              </div>
+            </div>
+
+            {/* Tracking Method Selection */}
+            <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg border-2 border-dashed border-gray-300">
+              <label className="block text-sm font-bold text-gray-900 mb-3">
+                🎯 Choose Your Tracking Method
+              </label>
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3 p-3 bg-white rounded-lg border-2 border-green-200 hover:border-green-300 transition-colors">
+                  <input
+                    id="direct-ga4-mgmt"
+                    type="radio"
+                    name="tracking-type-mgmt"
+                    value="direct_ga4"
+                    checked={trackingType === 'direct_ga4'}
+                    onChange={(e) => setTrackingType(e.target.value as 'direct_ga4')}
+                    className="mt-1 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="direct-ga4-mgmt" className="text-sm font-bold text-green-800 cursor-pointer flex items-center gap-2">
+                      🎯 Direct GA4 Tracking <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">RECOMMENDED</span>
+                    </label>
+                    <p className="text-xs text-green-700 mt-1 font-medium">
+                      ✅ Clean URLs perfect for YouTube • ✅ Faster loading • ✅ Better user experience
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Creates: https://yourdestination.com?utm_source=youtube&utm_medium=video...
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3 p-3 bg-white rounded-lg border-2 border-blue-200 hover:border-blue-300 transition-colors">
+                  <input
+                    id="server-redirect-mgmt"
+                    type="radio"
+                    name="tracking-type-mgmt"
+                    value="server_redirect"
+                    checked={trackingType === 'server_redirect'}
+                    onChange={(e) => setTrackingType(e.target.value as 'server_redirect')}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="server-redirect-mgmt" className="text-sm font-bold text-blue-800 cursor-pointer flex items-center gap-2">
+                      🔄 Server Redirect Tracking <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">ADVANCED</span>
+                    </label>
+                    <p className="text-xs text-blue-700 mt-1 font-medium">
+                      ✅ Detailed analytics • ✅ A/B testing • ✅ Complete data control
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Creates: https://yourdomain.com/api/v1/go/your-pretty-link
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -574,6 +678,22 @@ const UTMLinksManagement: React.FC<UTMLinksManagementProps> = ({ refreshTrigger 
                   <tr key={link.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="space-y-2">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className={`px-3 py-2 rounded-lg text-sm font-bold border-2 ${
+                            link.tracking_type === 'direct_ga4'
+                              ? 'bg-green-50 text-green-800 border-green-200'
+                              : 'bg-blue-50 text-blue-800 border-blue-200'
+                          }`}>
+                            {link.tracking_type === 'direct_ga4' ? '🎯 DIRECT GA4 TRACKING' : '🔄 SERVER REDIRECT TRACKING'}
+                          </span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            link.tracking_type === 'direct_ga4'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {link.tracking_type === 'direct_ga4' ? 'RECOMMENDED' : 'ADVANCED'}
+                          </span>
+                        </div>
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-gray-900">Video ID: {link.video_id}</p>
                           <a
@@ -586,16 +706,33 @@ const UTMLinksManagement: React.FC<UTMLinksManagementProps> = ({ refreshTrigger 
                             View on YouTube
                           </a>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm text-gray-600">Destination:</p>
-                          <a
-                            href={link.destination_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:text-blue-800 truncate max-w-xs"
-                          >
-                            {link.destination_url}
-                          </a>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-gray-600">Destination:</p>
+                            <a
+                              href={link.destination_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:text-blue-800 truncate max-w-xs"
+                            >
+                              {link.destination_url}
+                            </a>
+                          </div>
+                          <div className="bg-gray-50 p-3 rounded-lg border">
+                            <p className="text-xs font-medium text-gray-700 mb-1">
+                              {link.tracking_type === 'direct_ga4' ? '🎯 Share This Clean URL:' : '🔄 Share This Redirect URL:'}
+                            </p>
+                            <div className="font-mono text-xs text-gray-800 break-all bg-white p-2 rounded border">
+                              {link.tracking_type === 'direct_ga4'
+                                ? link.shareable_url
+                                : `${window.location.origin}${link.shareable_url}`}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {link.tracking_type === 'direct_ga4'
+                                ? '✅ Goes directly to destination with UTM parameters'
+                                : '✅ Routes through your server for detailed analytics'}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </td>

@@ -217,10 +217,16 @@ export interface UTMLink {
   utm_campaign: string;
   utm_content?: string;
   utm_term?: string;
-  pretty_slug: string;
+  tracking_url: string;
+  pretty_slug?: string;
+  tracking_type: 'server_redirect' | 'direct_ga4';
+  direct_url?: string;
+  shareable_url: string;
   click_count: number;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
+  is_active: boolean;
+  last_clicked?: string;
 }
 
 export interface UTMClickEvent {

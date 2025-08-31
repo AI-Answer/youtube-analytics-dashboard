@@ -72,7 +72,8 @@ class UTMService:
         video_id: str,
         destination_url: str,
         utm_content: Optional[str] = None,
-        utm_term: Optional[str] = None
+        utm_term: Optional[str] = None,
+        tracking_type: str = "server_redirect"
     ) -> UTMLink:
         """Create a new UTM tracking link for a video."""
 
@@ -95,12 +96,17 @@ class UTMService:
         if utm_term:
             utm_params['utm_term'] = utm_term
         
-        # Generate tracking URL
+        # Generate tracking URL (always generated for backward compatibility)
         tracking_url = self._build_tracking_url(destination_url, utm_params)
 
-        # Generate pretty slug
-        base_slug = self._generate_pretty_slug(destination_url, video_id)
-        pretty_slug = self._ensure_unique_slug(base_slug)
+        # Generate direct URL for GA4-only tracking
+        direct_url = tracking_url if tracking_type == "direct_ga4" else None
+
+        # Generate pretty slug (only for server redirect)
+        pretty_slug = None
+        if tracking_type == "server_redirect":
+            base_slug = self._generate_pretty_slug(destination_url, video_id)
+            pretty_slug = self._ensure_unique_slug(base_slug)
 
         # Create UTM link record
         utm_link = UTMLink(
@@ -112,7 +118,9 @@ class UTMService:
             utm_content=utm_content,
             utm_term=utm_term,
             tracking_url=tracking_url,
-            pretty_slug=pretty_slug
+            pretty_slug=pretty_slug,
+            tracking_type=tracking_type,
+            direct_url=direct_url
         )
         
         self.db.add(utm_link)
@@ -242,6 +250,9 @@ class UTMService:
                 'utm_term': utm_link.utm_term,
                 'tracking_url': utm_link.tracking_url,
                 'pretty_slug': utm_link.pretty_slug,
+                'tracking_type': utm_link.tracking_type,
+                'direct_url': utm_link.direct_url,
+                'shareable_url': utm_link.shareable_url,
                 'created_at': utm_link.created_at,
                 'is_active': utm_link.is_active,
                 'click_count': int(click_count) if click_count else 0,

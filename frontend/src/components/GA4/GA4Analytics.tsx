@@ -110,6 +110,36 @@ const GA4Analytics: React.FC<GA4AnalyticsProps> = ({ utmLinks, className = '' })
 
   return (
     <div className={`space-y-6 ${className}`}>
+      {/* Explanation Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg border-2 border-blue-200">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-blue-100 rounded-full">
+            <ChartBarIcon className="w-8 h-8 text-blue-600" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">📊 GA4 Analytics Integration</h2>
+            <p className="text-sm text-gray-700 mb-3">
+              This tab shows how your UTM tracking links perform in Google Analytics 4, comparing data from both tracking methods:
+            </p>
+            <div className="grid md:grid-cols-2 gap-4 text-sm">
+              <div className="bg-white p-3 rounded-lg border border-green-200">
+                <h4 className="font-bold text-green-800 mb-1">🎯 Direct GA4 Links</h4>
+                <p className="text-gray-600">Clean destination URLs with UTM parameters. Data appears directly in GA4 without server involvement.</p>
+              </div>
+              <div className="bg-white p-3 rounded-lg border border-blue-200">
+                <h4 className="font-bold text-blue-800 mb-1">🔄 Server Redirect Links</h4>
+                <p className="text-gray-600">Links route through your server first, then redirect to destination. Provides both server analytics AND GA4 data.</p>
+              </div>
+            </div>
+            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-xs text-yellow-800">
+                <strong>💡 Pro Tip:</strong> Use this tab to validate your tracking setup and compare server-side data with GA4 data for accuracy.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard

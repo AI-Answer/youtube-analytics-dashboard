@@ -34,10 +34,18 @@ if os.path.exists(db_path):
     # Check if pretty_slug column exists
     cursor.execute('PRAGMA table_info(utm_links)')
     columns = [column[1] for column in cursor.fetchall()]
-    
+
     if 'pretty_slug' not in columns:
         print('Running pretty_slug migration...')
         exec(open('migrations/add_pretty_slug_to_utm_links.py').read())
+
+    # Check if tracking_type column exists
+    cursor.execute('PRAGMA table_info(utm_links)')
+    columns = [column[1] for column in cursor.fetchall()]
+
+    if 'tracking_type' not in columns:
+        print('Running tracking type migration...')
+        exec(open('migrations/add_tracking_type_columns.py').read())
     else:
         print('Database is up to date')
     

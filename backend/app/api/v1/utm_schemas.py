@@ -2,7 +2,7 @@
 Pydantic schemas for UTM tracking API endpoints.
 """
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from pydantic import BaseModel, HttpUrl, Field
 
 
@@ -12,6 +12,7 @@ class UTMLinkCreate(BaseModel):
     destination_url: str = Field(..., description="The destination URL where users will be redirected")
     utm_content: Optional[str] = Field(None, description="Optional UTM content parameter")
     utm_term: Optional[str] = Field(None, description="Optional UTM term parameter")
+    tracking_type: Literal["server_redirect", "direct_ga4"] = Field("server_redirect", description="Tracking method: server_redirect for click tracking through our server, direct_ga4 for GA4-only tracking")
     
     class Config:
         schema_extra = {
@@ -19,7 +20,8 @@ class UTMLinkCreate(BaseModel):
                 "video_id": "dQw4w9WgXcQ",
                 "destination_url": "https://example.com/landing-page",
                 "utm_content": "description_link",
-                "utm_term": "youtube_traffic"
+                "utm_term": "youtube_traffic",
+                "tracking_type": "direct_ga4"
             }
         }
 
@@ -36,6 +38,9 @@ class UTMLinkResponse(BaseModel):
     utm_term: Optional[str]
     tracking_url: str
     pretty_slug: Optional[str] = Field(None, description="Pretty URL slug for user-friendly redirects")
+    tracking_type: str = Field("server_redirect", description="Tracking method: server_redirect or direct_ga4")
+    direct_url: Optional[str] = Field(None, description="Direct URL with UTM parameters for GA4-only tracking")
+    shareable_url: Optional[str] = Field(None, description="The URL that should be shared publicly")
     created_at: datetime
     is_active: int
     click_count: int = Field(0, description="Total number of clicks on this UTM link")

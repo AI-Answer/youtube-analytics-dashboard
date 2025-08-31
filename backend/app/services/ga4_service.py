@@ -93,17 +93,15 @@ class GA4Service:
                 "events": [{
                     "name": "utm_link_click",
                     "params": {
+                        "link_url": utm_link.destination_url,
+                        "video_id": utm_link.video_id,
                         "utm_source": utm_link.utm_source,
                         "utm_medium": utm_link.utm_medium,
                         "utm_campaign": utm_link.utm_campaign,
                         "utm_content": utm_link.utm_content or "",
                         "utm_term": utm_link.utm_term or "",
-                        "destination_url": utm_link.destination_url,
-                        "video_id": utm_link.video_id,
                         "link_id": str(utm_link.id),
-                        "custom_slug": utm_link.custom_slug or "",
                         "event_category": "UTM Tracking",
-                        "event_label": f"{utm_link.utm_source}_{utm_link.utm_campaign}",
                         "value": 1
                     }
                 }]
@@ -115,15 +113,18 @@ class GA4Service:
                     "user_agent": {"value": user_agent}
                 }
             
-            # Send event to GA4
+            # Send event to GA4 (with debug mode)
             params = {
                 "measurement_id": self.measurement_id,
                 "api_secret": self.api_secret
             }
+
+            # Use production endpoint
+            url = "https://www.google-analytics.com/mp/collect"
             
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    self.measurement_protocol_url,
+                    url,
                     params=params,
                     json=event_data,
                     headers={
@@ -132,8 +133,10 @@ class GA4Service:
                     }
                 )
                 
-            if response.status_code == 204:
+            if response.status_code in [200, 204]:
                 logger.info(f"GA4 event sent successfully for UTM link {utm_link.id}")
+                if response.text:
+                    logger.info(f"GA4 debug response: {response.text}")
                 return True
             else:
                 logger.error(f"GA4 event failed: {response.status_code} - {response.text}")

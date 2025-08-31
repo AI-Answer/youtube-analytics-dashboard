@@ -51,8 +51,8 @@ const GA4AnalyticsTab: React.FC<{ refreshTrigger: number }> = ({ refreshTrigger 
       const response = await fetch('/api/v1/utm-links');
       const data = await response.json();
 
-      if (data.success) {
-        setUtmLinks(data.utm_links || []);
+      if (data.status === 'success') {
+        setUtmLinks(data.links || []);
       } else {
         setError('Failed to fetch UTM links');
       }

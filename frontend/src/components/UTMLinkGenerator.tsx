@@ -32,6 +32,7 @@ export const UTMLinkGenerator: React.FC<UTMLinkGeneratorProps> = ({
   const [destinationUrl, setDestinationUrl] = useState<string>('');
   const [utmContent, setUtmContent] = useState<string>('');
   const [utmTerm, setUtmTerm] = useState<string>('');
+  const [trackingType, setTrackingType] = useState<'server_redirect' | 'direct_ga4'>('direct_ga4');
   const [generatedLink, setGeneratedLink] = useState<UTMLink | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
@@ -95,6 +96,7 @@ export const UTMLinkGenerator: React.FC<UTMLinkGeneratorProps> = ({
           destination_url: destinationUrl,
           utm_content: utmContent || undefined,
           utm_term: utmTerm || undefined,
+          tracking_type: trackingType,
         }),
       });
 
@@ -121,7 +123,7 @@ export const UTMLinkGenerator: React.FC<UTMLinkGeneratorProps> = ({
     if (!generatedLink) return;
 
     try {
-      await navigator.clipboard.writeText(generatedLink.tracking_url);
+      await navigator.clipboard.writeText(generatedLink.shareable_url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -135,6 +137,7 @@ export const UTMLinkGenerator: React.FC<UTMLinkGeneratorProps> = ({
     setDestinationUrl('');
     setUtmContent('');
     setUtmTerm('');
+    setTrackingType('direct_ga4');
     setGeneratedLink(null);
     setShowSuccess(false);
     setError('');
@@ -218,6 +221,53 @@ export const UTMLinkGenerator: React.FC<UTMLinkGeneratorProps> = ({
           </div>
         </div>
 
+        {/* Tracking Type Selection */}
+        <div className="bg-gray-50 p-4 rounded-lg border">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Tracking Method
+          </label>
+          <div className="space-y-3">
+            <div className="flex items-start space-x-3">
+              <input
+                id="direct-ga4"
+                type="radio"
+                name="tracking-type"
+                value="direct_ga4"
+                checked={trackingType === 'direct_ga4'}
+                onChange={(e) => setTrackingType(e.target.value as 'direct_ga4')}
+                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+              />
+              <div className="flex-1">
+                <label htmlFor="direct-ga4" className="text-sm font-medium text-gray-900 cursor-pointer">
+                  🎯 Direct GA4 Tracking (Recommended)
+                </label>
+                <p className="text-xs text-gray-600 mt-1">
+                  Share the destination URL directly with UTM parameters. Better user experience, faster loading, cleaner URLs for YouTube.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <input
+                id="server-redirect"
+                type="radio"
+                name="tracking-type"
+                value="server_redirect"
+                checked={trackingType === 'server_redirect'}
+                onChange={(e) => setTrackingType(e.target.value as 'server_redirect')}
+                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+              />
+              <div className="flex-1">
+                <label htmlFor="server-redirect" className="text-sm font-medium text-gray-900 cursor-pointer">
+                  🔄 Server Redirect Tracking
+                </label>
+                <p className="text-xs text-gray-600 mt-1">
+                  Route clicks through our server for maximum control and detailed analytics. Best for A/B testing and custom tracking.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Generate Button */}
         <button
           onClick={handleGenerateLink}
@@ -269,13 +319,33 @@ export const UTMLinkGenerator: React.FC<UTMLinkGeneratorProps> = ({
                 </div>
               </div>
 
-              {/* Generated UTM Link */}
+              {/* Tracking Method Badge */}
               <div className="bg-white p-4 rounded-lg border">
-                <h4 className="font-medium text-gray-900 mb-3">🔗 Your UTM Tracking Link</h4>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    generatedLink.tracking_type === 'direct_ga4'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {generatedLink.tracking_type === 'direct_ga4' ? '🎯 Direct GA4' : '🔄 Server Redirect'}
+                  </span>
+                  <h4 className="font-medium text-gray-900">Your UTM Tracking Link</h4>
+                </div>
                 <div className="space-y-3">
                   <div className="p-3 bg-gray-50 rounded border break-all text-sm font-mono">
-                    {generatedLink.tracking_url}
+                    {generatedLink.shareable_url}
                   </div>
+                  {generatedLink.tracking_type === 'direct_ga4' && (
+                    <p className="text-xs text-green-600">
+                      ✅ This link goes directly to your destination with UTM parameters for optimal user experience.
+                    </p>
+                  )}
+                  {generatedLink.tracking_type === 'server_redirect' && (
+                    <p className="text-xs text-blue-600">
+                      ✅ This link routes through our server to capture detailed click analytics.
+                    </p>
+                  )}
+                </div>
 
                   <div className="flex gap-2">
                     <button

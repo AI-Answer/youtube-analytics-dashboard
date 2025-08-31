@@ -136,6 +136,12 @@ logs
 **/*key*
 !**/public_key*
 
+# GA4 Service Account and sensitive config files
+backend/ga4-service-account.json
+backend/.env.ga4
+backend/debug_ga4_config.py
+backend/test_ga4_integration.py
+
 # Migration files (temporary)
 migration_statements.sql
 backend/migration_statements.sql
