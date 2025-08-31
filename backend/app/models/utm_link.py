@@ -1,7 +1,7 @@
 """
 UTM Link tracking models for video-driven traffic analytics.
 """
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Index
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Index, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .base import Base
@@ -28,6 +28,13 @@ class UTMLink(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     is_active = Column(Integer, default=1)  # 1 = active, 0 = inactive
+
+    # Google Analytics 4 Integration
+    ga4_enabled = Column(Boolean, default=True, nullable=False)  # Enable GA4 tracking
+    ga4_clicks = Column(Integer, default=0, nullable=False)  # GA4 event count
+    ga4_users = Column(Integer, default=0, nullable=False)  # GA4 unique users
+    ga4_sessions = Column(Integer, default=0, nullable=False)  # GA4 sessions
+    ga4_last_sync = Column(DateTime(timezone=True), nullable=True)  # Last GA4 sync
     
     # Relationships
     # Note: No direct relationship to Video model to allow tracking new videos

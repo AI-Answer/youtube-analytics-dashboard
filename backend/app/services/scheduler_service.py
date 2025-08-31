@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.services.daily_sync_service import DailySyncService
+from app.services.ga4_service import ga4_service
 from app.models.daily_sync import SyncConfiguration
 from app.core.config import get_youtube_config
 
@@ -71,22 +72,31 @@ class SchedulerService:
         """Check all channels and run syncs if needed."""
         try:
             db = next(get_db())
-            
+
             # Get all enabled sync configurations
             sync_configs = db.query(SyncConfiguration).filter(
                 SyncConfiguration.sync_enabled == True
             ).all()
-            
+
             logger.info(f"Checking {len(sync_configs)} channels for sync requirements")
-            
+
             for config in sync_configs:
                 try:
                     await self._check_channel_sync(db, config)
                 except Exception as e:
                     logger.error(f"Error checking sync for channel {config.channel_id}: {e}")
-            
+
+            # Run GA4 data sync every 4 hours (every 4th scheduler loop)
+            current_hour = datetime.now().hour
+            if current_hour % 4 == 0:
+                try:
+                    logger.info("Running scheduled GA4 data sync")
+                    await self._run_ga4_sync()
+                except Exception as e:
+                    logger.error(f"Error running GA4 sync: {e}")
+
             db.close()
-            
+
         except Exception as e:
             logger.error(f"Error checking syncs: {e}")
     
@@ -136,6 +146,15 @@ class SchedulerService:
             # Clean up task reference
             if channel_id in self.sync_tasks:
                 del self.sync_tasks[channel_id]
+
+    async def _run_ga4_sync(self):
+        """Run Google Analytics 4 data sync."""
+        try:
+            logger.info("Starting GA4 data sync")
+            result = await ga4_service.sync_ga4_data_to_database(days_back=7)
+            logger.info(f"GA4 sync completed: {result['synced']} records synced, {result['errors']} errors")
+        except Exception as e:
+            logger.error(f"GA4 sync failed: {e}")
     
     async def trigger_manual_sync(self, channel_id: str, force: bool = False) -> str:
         """Manually trigger a sync for a specific channel."""

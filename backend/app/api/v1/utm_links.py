@@ -1,6 +1,7 @@
 """
 UTM Link tracking API endpoints for video-driven traffic analytics.
 """
+import os
 from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -8,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.services.utm_service import UTMService
+from app.services.ga4_service import ga4_service
 from app.models.utm_link import UTMLink
 from app.api.v1.utm_schemas import (
     UTMLinkCreate,
@@ -142,6 +144,22 @@ async def record_link_click(
             ip_address=ip_address,
             referrer=referrer
         )
+
+        # Send event to Google Analytics 4 if enabled
+        try:
+            utm_link = db.query(UTMLink).filter(UTMLink.id == link_id).first()
+            if utm_link and utm_link.ga4_enabled:
+                await ga4_service.send_utm_click_event(
+                    utm_link=utm_link,
+                    user_agent=user_agent,
+                    ip_address=ip_address,
+                    referrer=referrer
+                )
+        except Exception as ga4_error:
+            # Don't fail the request if GA4 tracking fails
+            from loguru import logger
+            logger.warning(f"GA4 event tracking failed for link {link_id}: {ga4_error}")
+
         return click
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to record click: {str(e)}")
@@ -296,3 +314,103 @@ async def delete_utm_link(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting UTM link {link_id}: {str(e)}")
+
+
+# Google Analytics 4 Integration Endpoints
+
+@router.post("/utm-links/{link_id}/ga4/enable")
+async def enable_ga4_tracking(
+    link_id: int,
+    db: Session = Depends(get_db)
+):
+    """Enable Google Analytics 4 tracking for a UTM link."""
+    try:
+        utm_link = db.query(UTMLink).filter(UTMLink.id == link_id).first()
+        if not utm_link:
+            raise HTTPException(status_code=404, detail="UTM link not found")
+
+        utm_link.ga4_enabled = True
+        db.commit()
+
+        return {
+            "success": True,
+            "message": "GA4 tracking enabled",
+            "link_id": link_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to enable GA4 tracking: {str(e)}")
+
+
+@router.post("/utm-links/{link_id}/ga4/disable")
+async def disable_ga4_tracking(
+    link_id: int,
+    db: Session = Depends(get_db)
+):
+    """Disable Google Analytics 4 tracking for a UTM link."""
+    try:
+        utm_link = db.query(UTMLink).filter(UTMLink.id == link_id).first()
+        if not utm_link:
+            raise HTTPException(status_code=404, detail="UTM link not found")
+
+        utm_link.ga4_enabled = False
+        db.commit()
+
+        return {
+            "success": True,
+            "message": "GA4 tracking disabled",
+            "link_id": link_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to disable GA4 tracking: {str(e)}")
+
+
+@router.post("/ga4/sync")
+async def sync_ga4_data(
+    days_back: int = Query(7, description="Number of days to sync"),
+    db: Session = Depends(get_db)
+):
+    """Manually trigger GA4 data sync to local database."""
+    try:
+        result = await ga4_service.sync_ga4_data_to_database(days_back=days_back)
+        return {
+            "success": True,
+            "message": "GA4 data sync completed",
+            "synced_records": result["synced"],
+            "errors": result["errors"],
+            "days_synced": days_back
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"GA4 sync failed: {str(e)}")
+
+
+@router.get("/ga4/status")
+async def get_ga4_status():
+    """Get Google Analytics 4 integration status."""
+    try:
+        from app.core.config import settings
+
+        status = {
+            "ga4_configured": bool(settings.GA4_PROPERTY_ID and settings.GA4_MEASUREMENT_ID),
+            "measurement_protocol_enabled": bool(settings.GA4_MEASUREMENT_ID and settings.GA4_API_SECRET),
+            "data_api_enabled": bool(settings.GA4_PROPERTY_ID and settings.GA4_SERVICE_ACCOUNT_PATH),
+            "service_account_exists": bool(
+                settings.GA4_SERVICE_ACCOUNT_PATH and
+                os.path.exists(settings.GA4_SERVICE_ACCOUNT_PATH)
+            ) if settings.GA4_SERVICE_ACCOUNT_PATH else False
+        }
+
+        return {
+            "success": True,
+            "ga4_status": status,
+            "integration_ready": all([
+                status["measurement_protocol_enabled"],
+                status["data_api_enabled"],
+                status["service_account_exists"]
+            ])
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get GA4 status: {str(e)}")

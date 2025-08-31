@@ -4,6 +4,8 @@ import Head from 'next/head';
 import Layout from '@/components/Layout/Layout';
 import { VideoTrafficAnalytics } from '../components/VideoTrafficAnalytics';
 import UTMLinksManagement from '../components/UTMLinksManagement';
+import GA4Settings from '../components/GA4/GA4Settings';
+import GA4Analytics from '../components/GA4/GA4Analytics';
 import { Link2, TrendingUp, BarChart3, Database } from 'lucide-react';
 
 interface Video {
@@ -22,7 +24,75 @@ interface UTMLink {
   utm_content?: string;
   utm_term?: string;
   created_at: string;
+  utm_source: string;
+  utm_medium: string;
+  is_active: boolean;
+  ga4_enabled: boolean;
+  ga4_clicks: number;
+  ga4_users: number;
+  ga4_sessions: number;
+  ga4_last_sync?: string;
+  click_count: number;
 }
+
+// GA4 Analytics Tab Component
+const GA4AnalyticsTab: React.FC<{ refreshTrigger: number }> = ({ refreshTrigger }) => {
+  const [utmLinks, setUtmLinks] = useState<UTMLink[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchUTMLinks();
+  }, [refreshTrigger]);
+
+  const fetchUTMLinks = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/v1/utm-links');
+      const data = await response.json();
+
+      if (data.success) {
+        setUtmLinks(data.utm_links || []);
+      } else {
+        setError('Failed to fetch UTM links');
+      }
+    } catch (err) {
+      setError('Error fetching UTM links');
+      console.error('Error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="text-center text-red-600">
+          <p>{error}</p>
+          <button
+            onClick={fetchUTMLinks}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return <GA4Analytics utmLinks={utmLinks} />;
+};
 
 const TrafficPage: React.FC = () => {
   const router = useRouter();
@@ -30,7 +100,7 @@ const TrafficPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
-  const [activeTab, setActiveTab] = useState<'utm-links' | 'analytics'>('utm-links');
+  const [activeTab, setActiveTab] = useState<'utm-links' | 'analytics' | 'ga4-settings' | 'ga4-analytics'>('utm-links');
 
   useEffect(() => {
     fetchVideos();
@@ -176,6 +246,32 @@ const TrafficPage: React.FC = () => {
                     Traffic Analytics
                   </div>
                 </button>
+                <button
+                  onClick={() => setActiveTab('ga4-settings')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'ga4-settings'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Database className="w-4 h-4" />
+                    GA4 Settings
+                  </div>
+                </button>
+                <button
+                  onClick={() => setActiveTab('ga4-analytics')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'ga4-analytics'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    GA4 Analytics
+                  </div>
+                </button>
               </nav>
             </div>
           </div>
@@ -190,6 +286,14 @@ const TrafficPage: React.FC = () => {
 
           {activeTab === 'analytics' && (
             <VideoTrafficAnalytics refreshTrigger={refreshTrigger} />
+          )}
+
+          {activeTab === 'ga4-settings' && (
+            <GA4Settings />
+          )}
+
+          {activeTab === 'ga4-analytics' && (
+            <GA4AnalyticsTab refreshTrigger={refreshTrigger} />
           )}
 
           {/* Footer Info */}

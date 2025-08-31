@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     # ScrapeCreators API Configuration
     SCRAPECREATORS_API_KEY: str = "wHAmZcysPNY6yDhX0impv2Lv5dg1"
     SCRAPECREATORS_BASE_URL: str = "https://api.scrapecreators.com"
+
+    # Google Analytics 4 Configuration
+    GA4_PROPERTY_ID: Optional[str] = None
+    GA4_MEASUREMENT_ID: Optional[str] = None
+    GA4_API_SECRET: Optional[str] = None
+    GA4_SERVICE_ACCOUNT_PATH: Optional[str] = None
     
     # JWT Configuration
     SECRET_KEY: str
@@ -128,4 +134,15 @@ def get_scrapecreators_config() -> dict:
     return {
         "api_key": settings.SCRAPECREATORS_API_KEY,
         "base_url": settings.SCRAPECREATORS_BASE_URL
+    }
+
+
+# Google Analytics 4 configuration
+def get_ga4_config() -> dict:
+    """Get Google Analytics 4 configuration."""
+    return {
+        "property_id": settings.GA4_PROPERTY_ID,
+        "measurement_id": settings.GA4_MEASUREMENT_ID,
+        "api_secret": settings.GA4_API_SECRET,
+        "service_account_path": settings.GA4_SERVICE_ACCOUNT_PATH
     }
