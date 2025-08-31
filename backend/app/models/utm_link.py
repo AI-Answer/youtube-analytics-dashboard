@@ -39,6 +39,11 @@ class UTMLink(Base):
         Index('idx_utm_created', 'created_at'),
     )
 
+    @property
+    def click_count(self):
+        """Get the total number of clicks for this UTM link."""
+        return len(self.clicks)
+
     def __repr__(self):
         return f"<UTMLink(id={self.id}, video_id={self.video_id}, destination={self.destination_url[:50]}...)>"
 

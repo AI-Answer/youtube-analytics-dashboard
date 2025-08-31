@@ -10,6 +10,7 @@ import {
   GlobeAltIcon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
+  PresentationChartLineIcon,
 } from '@heroicons/react/24/outline';
 import { PlayIcon } from '@heroicons/react/24/solid';
 import apiClient from '@/services/api';
@@ -20,6 +21,7 @@ interface HeaderProps {
 
 const navigation = [
   { name: 'Overview', href: '/', icon: ChartBarIcon },
+  { name: 'Analytics', href: '/analytics', icon: PresentationChartLineIcon },
   { name: 'Videos', href: '/videos', icon: VideoCameraIcon },
   { name: 'Traffic', href: '/traffic', icon: GlobeAltIcon },
 ];

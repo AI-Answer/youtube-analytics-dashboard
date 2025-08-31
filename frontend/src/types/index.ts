@@ -207,6 +207,65 @@ export interface APIClientConfig {
   headers?: Record<string, string>;
 }
 
+// UTM Link Types
+export interface UTMLink {
+  id: number;
+  video_id: string;
+  destination_url: string;
+  utm_source: string;
+  utm_medium: string;
+  utm_campaign: string;
+  utm_content?: string;
+  utm_term?: string;
+  pretty_slug: string;
+  click_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UTMClickEvent {
+  id: number;
+  utm_link_id: number;
+  clicked_at: string;
+  ip_address?: string;
+  user_agent?: string;
+  referrer?: string;
+  country?: string;
+  city?: string;
+}
+
+export interface UTMAnalytics {
+  utm_link: UTMLink;
+  total_clicks: number;
+  unique_clicks: number;
+  click_data: Array<{
+    date: string;
+    clicks: number;
+    unique_clicks: number;
+  }>;
+  top_countries: Array<{
+    country: string;
+    clicks: number;
+  }>;
+  referrer_data: Array<{
+    referrer: string;
+    clicks: number;
+  }>;
+}
+
+export interface CombinedVideoAnalytics {
+  video_info: VideoOverview;
+  video_metrics: VideoMetricsData;
+  utm_links: UTMLink[];
+  total_utm_clicks: number;
+  click_through_rate: number;
+  weekly_growth: {
+    views_growth: number;
+    clicks_growth: number;
+    engagement_growth: number;
+  };
+}
+
 // Utility Types
 export type Nullable<T> = T | null;
 export type Optional<T> = T | undefined;

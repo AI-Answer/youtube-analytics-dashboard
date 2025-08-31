@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  output: 'standalone', // For Docker/container deployment
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
   },
@@ -15,7 +16,14 @@ const nextConfig = {
   },
   images: {
     domains: ['i.ytimg.com', 'yt3.ggpht.com'], // YouTube thumbnail domains
+    unoptimized: process.env.NODE_ENV === 'production', // Disable image optimization for static export
   },
+  // Production optimizations
+  experimental: {
+    optimizeCss: true,
+  },
+  // Ensure proper trailing slash handling
+  trailingSlash: false,
 };
 
 module.exports = nextConfig;

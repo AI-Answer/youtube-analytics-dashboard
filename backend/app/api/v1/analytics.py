@@ -14,6 +14,7 @@ from app.models.channel import Channel, ChannelMetrics
 from app.models.video import Video, VideoMetrics
 from app.models.traffic import WebsiteTraffic
 from app.models.weekly_metrics import WeeklyVideoMetrics
+from app.models.utm_link import UTMLink, LinkClick
 from app.services.youtube import YouTubeDataService
 from app.services.scrapecreators import ScrapeCreatorsService
 from app.services.weekly_metrics import WeeklyMetricsService
@@ -925,3 +926,168 @@ async def get_weekly_summary(db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Failed to get weekly summary: {e}")
         raise HTTPException(status_code=500, detail="Failed to get weekly summary")
+
+
+@router.get("/combined")
+async def get_combined_analytics(
+    period: str = Query("30d", description="Time period: 7d, 30d, or 90d"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get combined analytics data including video performance and UTM tracking.
+    """
+    try:
+        # Parse period
+        days_map = {"7d": 7, "30d": 30, "90d": 90}
+        days = days_map.get(period, 30)
+
+        start_date = datetime.now() - timedelta(days=days)
+
+        # Get YouTube config
+        youtube_config = get_youtube_config()
+        channel_id = youtube_config.get("channel_id", "UCzGcYErpBX4ldvv0l7MWLfw")
+
+        # Get videos from database
+        videos = db.query(Video).filter(
+            Video.channel_id == channel_id,
+            Video.is_active == True
+        ).order_by(desc(Video.view_count)).all()
+
+        # Get UTM links and click data from database
+        utm_links = db.query(UTMLink).all()
+
+        # Get click counts for all UTM links
+        utm_click_counts = {}
+        for link in utm_links:
+            click_count = db.query(LinkClick).filter(LinkClick.utm_link_id == link.id).count()
+            utm_click_counts[link.id] = click_count
+
+        # Combine data for each video
+        combined_videos = []
+        total_views = 0
+        total_clicks = 0
+
+        for video in videos:
+            video_id = video.video_id
+
+            # Get UTM links for this video
+            video_utm_links = [link for link in utm_links if link.video_id == video_id]
+
+            # Calculate total clicks for this video
+            video_clicks = sum(utm_click_counts.get(link.id, 0) for link in video_utm_links)
+
+            # Calculate CTR (clicks / views)
+            views = video.view_count
+            ctr = (video_clicks / views) if views > 0 else 0
+
+            # Mock weekly growth data (in production, calculate from historical data)
+            views_growth = calculate_mock_growth(views)
+            clicks_growth = calculate_mock_growth(video_clicks)
+            engagement_growth = calculate_mock_growth(video.like_count)
+
+            combined_video = {
+                "video_info": {
+                    "video_id": video_id,
+                    "title": video.title,
+                    "published_at": video.published_at.isoformat() if video.published_at else "",
+                    "view_count": views,
+                    "like_count": video.like_count,
+                    "comment_count": video.comment_count,
+                    "duration_seconds": video.duration or 0
+                },
+                "video_metrics": {
+                    "date": datetime.now().isoformat(),
+                    "view_count": views,
+                    "view_growth": views_growth,
+                    "view_growth_rate": views_growth / 100 if views > 0 else 0,
+                    "like_count": video.like_count,
+                    "comment_count": video.comment_count,
+                    "engagement_rate": calculate_engagement_rate(video)
+                },
+                "utm_links": [
+                    {
+                        "id": link.id,
+                        "video_id": link.video_id,
+                        "destination_url": link.destination_url,
+                        "utm_source": link.utm_source,
+                        "utm_medium": link.utm_medium,
+                        "utm_campaign": link.utm_campaign,
+                        "utm_content": link.utm_content,
+                        "utm_term": link.utm_term,
+                        "pretty_slug": link.pretty_slug,
+                        "click_count": utm_click_counts.get(link.id, 0),
+                        "created_at": link.created_at.isoformat(),
+                        "updated_at": link.updated_at.isoformat()
+                    }
+                    for link in video_utm_links
+                ],
+                "total_utm_clicks": video_clicks,
+                "click_through_rate": ctr,
+                "weekly_growth": {
+                    "views_growth": views_growth,
+                    "clicks_growth": clicks_growth,
+                    "engagement_growth": engagement_growth
+                }
+            }
+
+            combined_videos.append(combined_video)
+            total_views += views
+            total_clicks += video_clicks
+
+        # Calculate overall metrics
+        average_ctr = (total_clicks / total_views) if total_views > 0 else 0
+
+        # Mock weekly growth for overall metrics
+        weekly_growth = {
+            "views": calculate_mock_growth(total_views),
+            "clicks": calculate_mock_growth(total_clicks),
+            "ctr": calculate_mock_growth(average_ctr * 100)
+        }
+
+        return {
+            "status": "success",
+            "timestamp": datetime.now().isoformat(),
+            "period": period,
+            "videos": combined_videos,
+            "totalViews": total_views,
+            "totalClicks": total_clicks,
+            "averageCTR": average_ctr,
+            "weeklyGrowth": weekly_growth
+        }
+
+    except Exception as e:
+        logger.error(f"Error in combined analytics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def calculate_mock_growth(current_value: float) -> float:
+    """
+    Calculate mock growth percentage for demonstration.
+    In production, this would calculate actual growth from historical data.
+    """
+    import random
+    # Generate realistic growth between -20% and +50%
+    base_growth = random.uniform(-20, 50)
+
+    # Adjust based on current value (higher values tend to have lower growth rates)
+    if current_value > 100000:
+        base_growth *= 0.5
+    elif current_value > 10000:
+        base_growth *= 0.7
+
+    return round(base_growth, 1)
+
+
+def calculate_engagement_rate(video) -> float:
+    """
+    Calculate engagement rate for a video.
+    """
+    views = video.view_count or 0
+    likes = video.like_count or 0
+    comments = video.comment_count or 0
+
+    if views == 0:
+        return 0.0
+
+    engagement = (likes + comments) / views
+    return round(engagement * 100, 2)  # Return as percentage

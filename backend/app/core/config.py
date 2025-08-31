@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     
     # CORS Configuration
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8080"]
-    
+
     @validator("BACKEND_CORS_ORIGINS", pre=True)
     def assemble_cors_origins(cls, v):
         if isinstance(v, str) and not v.startswith("["):
@@ -52,6 +52,22 @@ class Settings(BaseSettings):
         elif isinstance(v, (list, str)):
             return v
         raise ValueError(v)
+
+    # Production Configuration
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT.lower() == "production"
+
+    @property
+    def cors_origins(self) -> List[str]:
+        """Get CORS origins based on environment."""
+        if self.is_production:
+            # In production, get from environment variable or use defaults
+            cors_env = os.getenv("CORS_ORIGINS", "")
+            if cors_env:
+                return [origin.strip() for origin in cors_env.split(",")]
+            return ["*"]  # Allow all origins in production (configure as needed)
+        return self.BACKEND_CORS_ORIGINS
     
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60

@@ -11,6 +11,12 @@ from typing import Dict, Any
 BACKEND_URL = "https://youtube-analytics-backend.onrender.com"
 FRONTEND_URL = "https://youtube-analytics-frontend.onrender.com"
 
+# You can also pass URLs as command line arguments
+if len(sys.argv) > 1:
+    BACKEND_URL = sys.argv[1]
+if len(sys.argv) > 2:
+    FRONTEND_URL = sys.argv[2]
+
 def test_endpoint(url: str, endpoint: str, method: str = "GET", data: Dict = None) -> Dict[str, Any]:
     """Test an API endpoint and return the result."""
     full_url = f"{url}{endpoint}"
