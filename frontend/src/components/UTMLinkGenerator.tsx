@@ -12,6 +12,8 @@ interface UTMLink {
   video_id: string;
   destination_url: string;
   tracking_url: string;
+  shareable_url: string;
+  tracking_type: 'server_redirect' | 'direct_ga4';
   utm_campaign: string;
   utm_content?: string;
   utm_term?: string;

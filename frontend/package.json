@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "railway:build": "npm ci && npm run build",
+    "railway:start": "npm start"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.0",
