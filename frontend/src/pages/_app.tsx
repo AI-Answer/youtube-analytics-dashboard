@@ -5,7 +5,7 @@ import '@/styles/globals.css';
 
 // SWR configuration
 const swrConfig = {
-  fetcher: (url: string) => apiClient.client.get(url).then(res => res.data),
+  fetcher: (url: string) => fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${url}`).then(res => res.json()),
   revalidateOnFocus: false,
   revalidateOnReconnect: true,
   refreshInterval: 0,

@@ -13,8 +13,8 @@ import {
   ChartBarIcon,
   EyeIcon,
   CursorArrowRaysIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon,
   ArrowUpIcon,
   ArrowDownIcon
 } from '@heroicons/react/24/outline';
@@ -221,7 +221,7 @@ const Analytics: NextPage = () => {
               <MetricCard
                 title="Active Videos"
                 value={analyticsData.videos.length.toString()}
-                icon={TrendingUpIcon}
+                icon={ArrowTrendingUpIcon}
               />
             </div>
 

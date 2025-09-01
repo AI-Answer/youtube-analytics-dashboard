@@ -200,12 +200,7 @@ class APIClient {
     return !!this.getAuthToken();
   }
 
-  getAuthToken(): string | null {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('auth_token');
-    }
-    return null;
-  }
+
 
   // Error handling helper
   handleError(error: any): ErrorResponse {
