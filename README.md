@@ -2,38 +2,35 @@
 
 A comprehensive YouTube analytics tracking system built with FastAPI backend and modern web frontend, featuring advanced UTM link generation and dual tracking capabilities.
 
-## 🚀 Quick Docker Deployment
+## 🚀 Quick Railway Deployment
 
 ### Prerequisites
-- Docker and Docker Compose installed
-- Git installed
+- Railway account
+- GitHub repository connected to Railway
+- Required API keys (Google OAuth, YouTube API)
 
-### One-Command Deployment
-```bash
-git clone https://github.com/AI-Answer/youtube-analytics-dashboard.git
-cd youtube-analytics-dashboard
-./deploy.sh
-```
+### One-Click Deployment
+1. Connect your GitHub repository to Railway
+2. Railway will auto-detect and deploy both backend and frontend services
+3. Set environment variables in Railway dashboard
+4. Access your deployed application
 
-### Manual Deployment
+### Manual Setup
 ```bash
 # 1. Clone repository
 git clone https://github.com/AI-Answer/youtube-analytics-dashboard.git
 cd youtube-analytics-dashboard
 
-# 2. Configure environment
-cp .env.example .env
-# Edit .env with your settings
+# 2. Connect to Railway
+railway login
+railway init
 
-# 3. Add GA4 service account (optional)
-# Place your GA4 JSON file at: backend/ga4-service-account.json
+# 3. Deploy services
+railway up
 
-# 4. Deploy
-docker compose up -d
-
-# 5. Access application
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:8000
+# 4. Access application
+# Frontend: https://your-frontend.railway.app
+# Backend API: https://your-backend.railway.app
 ```
 
 ## Project Overview
