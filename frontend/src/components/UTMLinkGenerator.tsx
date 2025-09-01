@@ -348,8 +348,7 @@ export const UTMLinkGenerator: React.FC<UTMLinkGeneratorProps> = ({
                     </p>
                   )}
                 </div>
-
-                  <div className="flex gap-2">
+                <div className="flex gap-2">
                     <button
                       onClick={handleCopyLink}
                       className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 font-medium"
