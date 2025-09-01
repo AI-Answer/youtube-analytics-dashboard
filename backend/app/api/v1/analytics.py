@@ -473,8 +473,14 @@ async def get_analytics_overview(db: Session = Depends(get_db)):
         # Initialize YouTube service with scraper
         youtube_service = YouTubeDataService(db)
 
-        # Get fresh channel data using scraper (fast)
-        channel = youtube_service.get_enhanced_channel_info(channel_handle)
+        # Get or create channel data using YouTube API
+        channel_id = youtube_config.get("channel_id")
+        channel = db.query(Channel).filter(Channel.channel_id == channel_id).first()
+
+        if not channel:
+            # Fetch from YouTube API and save
+            channel_data = youtube_service.get_channel_info(channel_id)
+            channel = youtube_service.save_channel_data(channel_data)
 
         # Check if we have recent videos in database, if not sync a few
         existing_videos = db.query(Video).filter(
@@ -482,8 +488,17 @@ async def get_analytics_overview(db: Session = Depends(get_db)):
         ).limit(5).all()
 
         if len(existing_videos) < 3:
-            # Only sync if we don't have enough videos
-            videos = youtube_service.sync_channel_videos(channel_handle, limit=10)
+            # Sync some videos using YouTube API if we don't have enough
+            try:
+                videos_data = youtube_service.get_channel_videos(channel_id, max_results=10)
+                videos = []
+                for video_data in videos_data:
+                    video = youtube_service.save_video_data(video_data, channel_id)
+                    videos.append(video)
+                logger.info(f"Synced {len(videos)} videos for overview")
+            except Exception as e:
+                logger.warning(f"Failed to sync videos for overview: {e}")
+                videos = existing_videos
         else:
             videos = existing_videos
         
@@ -540,19 +555,24 @@ async def get_analytics_overview(db: Session = Depends(get_db)):
 
 @router.post("/sync", response_model=BaseResponse)
 async def sync_analytics_data(db: Session = Depends(get_db)):
-    """Manually trigger analytics data synchronization using YouTube scraper."""
+    """Manually trigger analytics data synchronization using YouTube API."""
     try:
         youtube_config = get_youtube_config()
-        channel_handle = youtube_config.get("channel_handle", "@SaminYasar_")
+        channel_id = youtube_config.get("channel_id")
 
-        # Initialize YouTube service with scraper
+        # Initialize YouTube service
         youtube_service = YouTubeDataService(db)
 
-        # Sync fresh channel data
-        channel = youtube_service.get_enhanced_channel_info(channel_handle)
+        # Sync fresh channel data using YouTube API
+        channel_data = youtube_service.get_channel_info(channel_id)
+        channel = youtube_service.save_channel_data(channel_data)
 
-        # Sync all videos (up to 50)
-        videos = youtube_service.sync_channel_videos(channel_handle, limit=50)
+        # Sync videos using YouTube API
+        videos_data = youtube_service.get_channel_videos(channel_id, max_results=20)
+        videos = []
+        for video_data in videos_data:
+            video = youtube_service.save_video_data(video_data, channel_id)
+            videos.append(video)
 
         return BaseResponse(
             message=f"Analytics data synchronized successfully. Updated channel info and processed {len(videos)} videos."
@@ -560,7 +580,7 @@ async def sync_analytics_data(db: Session = Depends(get_db)):
 
     except Exception as e:
         logger.error(f"Failed to sync analytics data: {e}")
-        raise HTTPException(status_code=500, detail="Failed to sync analytics data")
+        raise HTTPException(status_code=500, detail=f"Failed to sync analytics data: {str(e)}")
 
 
 @router.get("/videos/weekly-summary")
