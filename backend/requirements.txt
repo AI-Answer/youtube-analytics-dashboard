@@ -6,6 +6,7 @@ uvicorn[standard]==0.24.0
 sqlalchemy==2.0.23
 alembic==1.12.1
 psycopg2-binary==2.9.9  # PostgreSQL adapter
+supabase==2.3.4  # Supabase Python client
 # sqlite3 is built into Python, no need to install
 
 # Authentication and Security

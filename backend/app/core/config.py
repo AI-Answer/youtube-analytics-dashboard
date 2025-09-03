@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     
     # Database
     DATABASE_URL: str = "sqlite:///./youtube_analytics.db"
+
+    # Supabase Configuration
+    SUPABASE_URL: Optional[str] = None
+    SUPABASE_KEY: Optional[str] = None
+    SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
     
     # Google OAuth Configuration
     GOOGLE_CLIENT_ID: str
@@ -145,4 +150,14 @@ def get_ga4_config() -> dict:
         "measurement_id": settings.GA4_MEASUREMENT_ID,
         "api_secret": settings.GA4_API_SECRET,
         "service_account_path": settings.GA4_SERVICE_ACCOUNT_PATH
+    }
+
+
+# Supabase configuration
+def get_supabase_config() -> dict:
+    """Get Supabase configuration."""
+    return {
+        "url": settings.SUPABASE_URL,
+        "key": settings.SUPABASE_KEY,
+        "service_role_key": settings.SUPABASE_SERVICE_ROLE_KEY
     }
